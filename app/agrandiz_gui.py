@@ -38,6 +38,8 @@ SUPPORT_DIR = Path.home() / "Library" / "Application Support" / APP_NAME
 PROJECT_DIR = SUPPORT_DIR / "project"
 
 LOG_LINES = []
+CURRENT_SERVER_PORT = None
+
 CURRENT_STATUS = {
     "busy": False,
     "title": "Ready",
@@ -308,11 +310,15 @@ def run_pipeline():
             "Discovering stories",
         ),
         (
-            [py, "scripts/group_story_moments.py", "--input", "cache/story_candidates_raw.json", "--outdir", "cache", "--lang", "both"],
+            [py, "scripts/group_story_moments.py", "--input", "cache/story_candidates_raw.json", "--outdir", "cache"],
             "Grouping story moments",
         ),
         (
-            [py, "scripts/render_story_moments.py", "--input", "cache/story_candidates_grouped.json", "--exclude", "config/excludes.json", "--outdir", "cache", "--lang", "both"],
+            [py, "scripts/dedupe_story_candidates.py", "--input", "cache/story_candidates_grouped.json", "--output", "cache/story_candidates_deduped.json"],
+            "Removing duplicate moments",
+        ),
+        (
+            [py, "scripts/render_story_moments.py", "--input", "cache/story_candidates_deduped.json", "--exclude", "config/excludes.json", "--outdir", "cache"],
             "Rendering story gallery",
         ),
         (
@@ -479,81 +485,105 @@ def open_portal():
 
     dashboard = cache_dir / "dashboard.apple.apple_icloud.html"
     legacy_dashboard = cache_dir / "dashboard.en.apple.apple_icloud.html"
-    index = cache_dir / "index.html"
+
+    port = CURRENT_SERVER_PORT or PORT
 
     if dashboard.exists():
-        webbrowser.open(dashboard.as_uri())
-        log(f"Opened dashboard: {dashboard}")
+        url = f"http://127.0.0.1:{port}/cache/dashboard.apple.apple_icloud.html"
+        webbrowser.open(url)
+        log(f"Opened dashboard: {url}")
         return True
 
     if legacy_dashboard.exists():
-        webbrowser.open(legacy_dashboard.as_uri())
-        log(f"Opened legacy dashboard: {legacy_dashboard}")
-        return True
-
-    if index.exists():
-        webbrowser.open(index.as_uri())
-        log(f"Opened fallback portal: {index}")
+        url = f"http://127.0.0.1:{port}/cache/dashboard.en.apple.apple_icloud.html"
+        webbrowser.open(url)
+        log(f"Opened legacy dashboard: {url}")
         return True
 
     log("Dashboard not found. Run Generate Stories first.")
     return False
 
 
-def sqlite_has_photos_table(db_path):
-    if not db_path.exists() or db_path.stat().st_size == 0:
-        return False
+def file_response(handler, path, content_type="text/html; charset=utf-8"):
+    if not path.exists() or not path.is_file():
+        json_response(handler, {"error": "not found"}, status=404)
+        return
 
+    payload = path.read_bytes()
+    handler.send_response(200)
+    handler.send_header("Content-Type", content_type)
+    handler.send_header("Content-Length", str(len(payload)))
+    handler.end_headers()
+    handler.wfile.write(payload)
+
+
+def content_type_for(path):
+    suffix = path.suffix.lower()
+    if suffix == ".html":
+        return "text/html; charset=utf-8"
+    if suffix == ".json":
+        return "application/json; charset=utf-8"
+    if suffix == ".css":
+        return "text/css; charset=utf-8"
+    if suffix in [".jpg", ".jpeg"]:
+        return "image/jpeg"
+    if suffix == ".png":
+        return "image/png"
+    if suffix == ".webp":
+        return "image/webp"
+    return "application/octet-stream"
+
+
+
+def read_request_json(handler):
+    length = int(handler.headers.get("Content-Length", "0") or "0")
+    if length <= 0:
+        return {}
+    raw = handler.rfile.read(length)
     try:
-        import sqlite3
-        conn = sqlite3.connect(str(db_path))
-        row = conn.execute(
-            "SELECT name FROM sqlite_master WHERE type='table' AND name='photos'"
-        ).fetchone()
-        conn.close()
-        return row is not None
+        return json.loads(raw.decode("utf-8"))
     except Exception:
-        return False
+        return {}
 
 
-def runtime_state():
-    project_dir = PROJECT_DIR
-    cache_dir = project_dir / "cache"
+def update_excludes(payload):
+    project_dir = ensure_project()
+    exclude_path = project_dir / "config" / "excludes.json"
+    exclude_path.parent.mkdir(parents=True, exist_ok=True)
 
-    db_path = cache_dir / "agrandiz.sqlite"
+    if exclude_path.exists():
+        try:
+            data = json.loads(exclude_path.read_text(encoding="utf-8"))
+        except Exception:
+            data = {}
+    else:
+        data = {}
 
-    stories_path = cache_dir / "stories.apple.apple_icloud.html"
-    dashboard_path = cache_dir / "dashboard.apple.apple_icloud.html"
-    family_path = cache_dir / "family-timeline.apple.apple_icloud.html"
-    story_json_path = cache_dir / "story_candidates.json"
+    for key in ["uuids", "phashes", "filenames", "captions"]:
+        if not isinstance(data.get(key), list):
+            data[key] = []
 
-    photos_cache_ready = sqlite_has_photos_table(db_path)
+    for key in ["uuid", "phash", "filename", "caption"]:
+        value = payload.get(key)
+        if not value:
+            continue
 
-    outputs_ready = (
-        dashboard_path.exists()
-        or stories_path.exists()
-        or family_path.exists()
-        or story_json_path.exists()
+        target_key = {
+            "uuid": "uuids",
+            "phash": "phashes",
+            "filename": "filenames",
+            "caption": "captions",
+        }[key]
+
+        if value not in data[target_key]:
+            data[target_key].append(value)
+
+    exclude_path.write_text(
+        json.dumps(data, indent=2, ensure_ascii=False) + "\\n",
+        encoding="utf-8"
     )
 
-    return {
-        "busy": CURRENT_STATUS["busy"],
-        "title": CURRENT_STATUS["title"],
-        "last_error": CURRENT_STATUS["last_error"],
-        "version": app_version_string(),
-        "photos_cache_ready": photos_cache_ready,
-        "portal_ready": outputs_ready,
-        "outputs_ready": outputs_ready,
-        "paths": {
-            "project_dir": str(project_dir),
-            "cache_dir": str(cache_dir),
-            "db": str(db_path),
-            "dashboard": str(dashboard_path),
-            "stories": str(stories_path),
-            "family": str(family_path),
-            "story_json": str(story_json_path)
-        }
-    }
+    return data
 
 
 def json_response(handler, obj, status=200):
@@ -1106,6 +1136,18 @@ class Handler(BaseHTTPRequestHandler):
             html_response(self, app_html())
             return
 
+        if parsed.path.startswith("/cache/"):
+            rel = parsed.path.lstrip("/")
+            path = PROJECT_DIR / rel
+            file_response(self, path, content_type_for(path))
+            return
+
+        if parsed.path.startswith("/themes/"):
+            rel = parsed.path.lstrip("/")
+            path = PROJECT_DIR / rel
+            file_response(self, path, content_type_for(path))
+            return
+
         if parsed.path == "/api/status":
             json_response(self, runtime_state())
             return
@@ -1133,6 +1175,13 @@ class Handler(BaseHTTPRequestHandler):
             run_async(open_output_folder)
             json_response(self, {"ok": True})
             return
+
+        if parsed.path == "/api/exclude":
+            payload = read_request_json(self)
+            data = update_excludes(payload)
+            json_response(self, {"ok": True, "excludes": data})
+            return
+
 
         if parsed.path == "/api/open-portal":
             run_async(open_portal)
@@ -1169,7 +1218,9 @@ def main():
         log(f"Project preparation error: {exc}")
         set_status(False, "Project preparation error", str(exc))
 
+    global CURRENT_SERVER_PORT
     port = find_free_port(PORT)
+    CURRENT_SERVER_PORT = port
     server = ThreadingHTTPServer(("127.0.0.1", port), Handler)
     url = f"http://127.0.0.1:{port}/"
 

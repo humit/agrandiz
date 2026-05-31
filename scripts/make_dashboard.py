@@ -512,6 +512,26 @@ def render_dashboard(theme, lang, profile, data):
       <div class="photo-grid compact">{top_cloud_html}</div>
     </section>
   </div>
+
+<section class="section generated-content">
+  <div class="section-head">
+    <h2>Generated content</h2>
+    <p>Open the generated story outputs from this dashboard.</p>
+  </div>
+  <div class="story-grid">
+    <a class="portal-card" href="stories.apple.apple_icloud.html">
+      <div class="eyebrow">Story Gallery</div>
+      <h3>Open Story Gallery</h3>
+      <p>Review curated story candidates, grouped moments, and exclusions.</p>
+    </a>
+    <a class="portal-card" href="family-timeline.apple.apple_icloud.html">
+      <div class="eyebrow">Family Timeline</div>
+      <h3>Open Family Timeline</h3>
+      <p>Browse the year-by-year growing-up timeline.</p>
+    </a>
+  </div>
+</section>
+
 </body>
 </html>
 """

@@ -292,3 +292,21 @@ h1 {
   .photo-grid.compact,
   .info-strip { grid-template-columns: 1fr; }
 }
+
+/* Agrandiz image policy: never crop memory thumbnails by default. */
+.photo-card img,
+.story-card img,
+.timeline-card img,
+.timeline-image img,
+.card img,
+figure img {
+  object-fit: contain !important;
+}
+
+.photo-card,
+.story-card,
+.timeline-card,
+.timeline-image,
+figure {
+  background: #f5f5f7;
+}
