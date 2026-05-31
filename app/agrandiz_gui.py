@@ -796,9 +796,10 @@ def app_html():
 
     .actions {{
       display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
+      grid-template-columns: minmax(0, 1fr);
       gap: 12px;
       margin: 20px 0;
+      max-width: 360px;
     }}
 
     .log {{
@@ -895,19 +896,25 @@ def app_html():
       </article>
 
       <article class="card action-card" id="demoPortalCard">
-        <div class="label" data-i18n="web.demo_portal">Demo portal</div>
+        <div class="label" data-i18n="web.demo_portal">Story Dashboard</div>
         <div id="demoPortalValue" class="value warn">Checking...</div>
         <p class="card-note" data-i18n="web.portal_card_desc">
-          Discover story candidates, build the dashboard, create moment galleries, and generate the family timeline.
+          Generate story candidates, build the dashboard, create moment galleries, and prepare the family timeline.
         </p>
         <button class="primary card-button" id="build" type="button">
-          <span data-i18n="web.discover_stories">Discover Stories</span>
+          <span data-i18n="web.generate_stories">Generate Stories</span>
         </button>
       </article>
 
-      <article class="card">
-        <div class="label" data-i18n="web.project_folder">Project folder</div>
-        <div class="value" style="font-size: 13px; word-break: break-all;">{project_dir}</div>
+      <article class="card action-card" id="openDashboardCard">
+        <div class="label" data-i18n="web.open_dashboard">Open Dashboard</div>
+        <div id="openDashboardValue" class="value warn">Unavailable</div>
+        <p class="card-note">
+          Open the generated local dashboard and story discovery portal.
+        </p>
+        <button class="primary card-button" id="openPortal" type="button">
+          <span data-i18n="web.open_dashboard">Open Dashboard</span>
+        </button>
       </article>
 
       <article class="card status-card">
@@ -920,9 +927,6 @@ def app_html():
     </section>
 
     <section class="actions">
-      <button id="openPortal" type="button">
-        <span data-i18n="web.open_dashboard">Open Dashboard</span>
-      </button>
       <button id="openFolder" type="button">
         <span data-i18n="web.open_output_folder">Open Output Folder</span>
       </button>
@@ -987,6 +991,7 @@ async function refresh() {{
 
   const photosValue = document.getElementById("photosCacheValue");
   const portalValue = document.getElementById("demoPortalValue");
+  const openDashboardValue = document.getElementById("openDashboardValue");
 
   if (photosValue) {{
     if (isScanning) {{
@@ -1010,6 +1015,12 @@ async function refresh() {{
       portalValue.classList.toggle("ok", !!status.portal_ready);
       portalValue.classList.toggle("warn", !status.portal_ready);
     }}
+  }}
+
+  if (openDashboardValue) {{
+    openDashboardValue.textContent = status.portal_ready ? "Ready" : "Unavailable";
+    openDashboardValue.classList.toggle("ok", !!status.portal_ready);
+    openDashboardValue.classList.toggle("warn", !status.portal_ready);
   }}
 
   const scanButton = document.getElementById("scan");

@@ -74,8 +74,9 @@
   "portal.card.dashboard.title": "Archive Overview",
   "portal.card.dashboard.desc": "A local summary of the Apple Photos/iCloud archive, preview availability and strong candidates.",
   "web.cache_card_desc": "Build or refresh the local SQLite metadata cache from Apple Photos.",
-  "web.portal_card_desc": "Discover story candidates, build the dashboard, create moment galleries, and generate the family timeline.",
+  "web.portal_card_desc": "Generate story candidates, build the dashboard, create moment galleries, and prepare the family timeline.",
   "web.scan_photos": "Scan Photos",
   "web.discover_stories": "Discover Stories",
-  "web.open_dashboard": "Open Dashboard"
+  "web.open_dashboard": "Open Dashboard",
+  "web.generate_stories": "Generate Stories"
 }
