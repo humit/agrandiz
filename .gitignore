@@ -1,0 +1,16 @@
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Build artifacts
+dist/
+build/
+*.dmg
+
+# macOS
+.DS_Store
+
+# Agrandiz generated local outputs
+cache/

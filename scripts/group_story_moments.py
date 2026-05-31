@@ -266,7 +266,7 @@ def process(data, args):
     out = {
         "generated_at": datetime.now().isoformat(timespec="seconds"),
         "source": args.input,
-        "mode": "moment_grouping_postprocessor",
+        "mode": "moment_grouping",
         "settings": {
             "phash_duplicate_threshold": args.phash_duplicate_threshold,
             "burst_seconds": args.burst_seconds,
@@ -426,14 +426,14 @@ def render_story(story, lang):
 
 def render_page(data, lang):
     if lang == "tr":
-        title = "agrandiz hikâye keşfi v3"
+        title = "agrandiz moment gruplama"
         hero = "Moment bazlı albüm ve Reels/Shorts adayları"
         subtitle = "Ardışık çekilmiş, gözle çok benzer kareler tek bir moment altında gruplanır; sadece en iyi temsilci gösterilir."
         candidates_label = "story adayı"
         moments_label = "seçili moment"
         grouped_label = "gruplanan varyant"
     else:
-        title = "agrandiz story discovery v3"
+        title = "agrandiz moment grouping"
         hero = "Moment-based album and Reels/Shorts candidates"
         subtitle = "Near-burst and visually similar shots are grouped into moments; only the best representative is shown."
         candidates_label = "story candidates"
@@ -624,7 +624,7 @@ def render_page(data, lang):
 <body class="theme-apple profile-apple_icloud">
   <div class="shell">
     <header class="hero">
-      <div class="brand">agrandiz <span>story discovery v3</span></div>
+      <div class="brand">agrandiz <span>moment grouping</span></div>
       <div class="hero-copy">
         <h1>{esc(hero)}</h1>
         <p>{esc(subtitle)}</p>
@@ -661,20 +661,20 @@ def write_index_links():
     text = p.read_text()
 
     insert = '''
-      <a class="portal-card" href="stories-v3.tr.apple.apple_icloud.html">
-        <div class="eyebrow">Türkçe · Story Discovery v3</div>
+      <a class="portal-card" href="stories-moments.tr.apple.apple_icloud.html">
+        <div class="eyebrow">Türkçe · Moment Grouping</div>
         <h2>Moment Bazlı Hikâye Adayları</h2>
         <p>Ardışık ve benzer kareleri moment olarak gruplayan daha temiz albüm/reel adayları.</p>
       </a>
 
-      <a class="portal-card" href="stories-v3.en.apple.apple_icloud.html">
-        <div class="eyebrow">English · Story Discovery v3</div>
+      <a class="portal-card" href="stories-moments.en.apple.apple_icloud.html">
+        <div class="eyebrow">English · Moment Grouping</div>
         <h2>Moment-Based Story Candidates</h2>
         <p>Cleaner album/reel candidates with near-burst shots grouped into moments.</p>
       </a>
 '''
 
-    if "stories-v3.tr.apple.apple_icloud.html" in text:
+    if "stories-moments.tr.apple.apple_icloud.html" in text:
         return
 
     needle = '''    </section>
@@ -688,7 +688,7 @@ def write_index_links():
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--input", default="cache/story_candidates_v2.json")
+    parser.add_argument("--input", default="cache/story_candidates_raw.json")
     parser.add_argument("--outdir", default="cache")
     parser.add_argument("--lang", default="both", choices=["tr", "en", "both"])
 
@@ -709,14 +709,14 @@ def main():
     data = json.loads(Path(args.input).read_text())
     grouped = process(data, args)
 
-    json_path = outdir / "story_candidates_v3.json"
+    json_path = outdir / "story_candidates_grouped.json"
     json_path.write_text(json.dumps(grouped, indent=2, ensure_ascii=False), encoding="utf-8")
     print(f"Wrote {json_path}")
 
     langs = ["tr", "en"] if args.lang == "both" else [args.lang]
     for lang in langs:
         html_text = render_page(grouped, lang)
-        html_path = outdir / f"stories-v3.{lang}.apple.apple_icloud.html"
+        html_path = outdir / f"stories-moments.{lang}.apple.apple_icloud.html"
         html_path.write_text(html_text, encoding="utf-8")
         print(f"Wrote {html_path}")
 
@@ -734,4 +734,6 @@ def main():
 
 
 if __name__ == "__main__":
+    from agrandiz_version import print_version
+    print_version()
     main()

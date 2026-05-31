@@ -28,6 +28,41 @@ CURRENT_STATUS = {
 }
 
 
+
+def load_app_version():
+    root = bundled_project_dir()
+    vf = root / "VERSION.json"
+
+    if not vf.exists():
+        return {
+            "name": "Agrandiz",
+            "version": "0.0.0",
+            "channel": "dev",
+            "updated_at": None,
+        }
+
+    try:
+        return json.loads(vf.read_text())
+    except Exception:
+        return {
+            "name": "Agrandiz",
+            "version": "0.0.0",
+            "channel": "unknown",
+            "updated_at": None,
+        }
+
+
+def app_version_string():
+    data = load_app_version()
+    name = data.get("name", "Agrandiz")
+    version = data.get("version", "0.0.0")
+    channel = data.get("channel", "dev")
+
+    if channel:
+        return f"{name} {version} {channel}"
+
+    return f"{name} {version}"
+
 def log(message):
     line = str(message)
     print(line, flush=True)
@@ -116,6 +151,12 @@ def sync_project_code(src, dst):
             d,
             ignore=shutil.ignore_patterns("__pycache__", "*.pyc", ".DS_Store")
         )
+
+    # Keep shared version file in sync too.
+    version_src = src / "VERSION.json"
+    version_dst = dst / "VERSION.json"
+    if version_src.exists():
+        shutil.copy2(version_src, version_dst)
 
     # Ensure required writable dirs/files exist.
     (dst / "cache").mkdir(parents=True, exist_ok=True)
@@ -235,7 +276,7 @@ def run_pipeline():
         log("Already busy; ignoring new pipeline request.")
         return
 
-    log("Build requested. This step creates dashboard, story candidates, moment grouping and v4 gallery.")
+    log("Build requested. This step creates dashboard, story candidates, moment grouping and story gallery.")
 
     py = app_python()
 
@@ -245,15 +286,15 @@ def run_pipeline():
             "Building dashboard",
         ),
         (
-            [py, "scripts/discover_stories_v2.py", "--db", "cache/agrandiz.sqlite", "--outdir", "cache", "--config", "config/story_profiles/apple_icloud_default.json", "--lang", "both"],
+            [py, "scripts/discover_stories.py", "--db", "cache/agrandiz.sqlite", "--outdir", "cache", "--config", "config/story_profiles/apple_icloud_default.json", "--lang", "both"],
             "Discovering stories",
         ),
         (
-            [py, "scripts/group_story_moments.py", "--input", "cache/story_candidates_v2.json", "--outdir", "cache", "--lang", "both"],
+            [py, "scripts/group_story_moments.py", "--input", "cache/story_candidates_raw.json", "--outdir", "cache", "--lang", "both"],
             "Grouping story moments",
         ),
         (
-            [py, "scripts/render_story_moments_v4.py", "--input", "cache/story_candidates_v3.json", "--exclude", "config/excludes.json", "--outdir", "cache", "--lang", "both"],
+            [py, "scripts/render_story_moments.py", "--input", "cache/story_candidates_grouped.json", "--exclude", "config/excludes.json", "--outdir", "cache", "--lang", "both"],
             "Rendering story gallery",
         ),
         (
@@ -299,11 +340,11 @@ def ensure_portal_index(project_dir):
     index = cache_dir / "index.html"
 
     files = {
-        "stories_tr": cache_dir / "stories-v4.tr.apple.apple_icloud.html",
-        "stories_en": cache_dir / "stories-v4.en.apple.apple_icloud.html",
+        "stories_tr": cache_dir / "stories.tr.apple.apple_icloud.html",
+        "stories_en": cache_dir / "stories.en.apple.apple_icloud.html",
         "dashboard_tr": cache_dir / "dashboard.tr.apple.apple_icloud.html",
         "dashboard_en": cache_dir / "dashboard.en.apple.apple_icloud.html",
-        "story_json": cache_dir / "story_candidates_v4.json",
+        "story_json": cache_dir / "story_candidates.json",
     }
 
     def ready(name):
@@ -328,15 +369,15 @@ def ensure_portal_index(project_dir):
 
     cards = [
         card(
-            "stories-v4.tr.apple.apple_icloud.html",
-            "Türkçe · Story Discovery v4",
+            "stories.tr.apple.apple_icloud.html",
+            "Türkçe · Story Discovery",
             "Kürasyon Kontrollü Moment Galerisi",
             "Tam görünen fotoğraflar, exclude butonları ve hover micro-sequence ile gelişmiş hikâye adayları.",
             ready("stories_tr"),
         ),
         card(
-            "stories-v4.en.apple.apple_icloud.html",
-            "English · Story Discovery v4",
+            "stories.en.apple.apple_icloud.html",
+            "English · Story Discovery",
             "Curatable Moment Gallery",
             "Full-image thumbnails, exclude buttons and hover micro-sequences for story candidates.",
             ready("stories_en"),
@@ -402,7 +443,7 @@ def ensure_portal_index(project_dir):
         '    <section class="dev-panel">',
         "      <h2>Developer artifacts</h2>",
         "      <p>Output folder: <code>" + str(cache_dir) + "</code></p>",
-        "      <p>Main story data: <code>cache/story_candidates_v4.json</code></p>",
+        "      <p>Main story data: <code>cache/story_candidates.json</code></p>",
         "      <p>Exclude config: <code>config/excludes.json</code></p>",
         "    </section>",
         "  </div>",
@@ -451,11 +492,12 @@ def run_async(fn):
 
 
 def app_html():
+    version_label = app_version_string()
     project_dir = PROJECT_DIR
     cache_dir = project_dir / "cache"
 
     dashboard_tr = cache_dir / "dashboard.tr.apple.apple_icloud.html"
-    stories_v4_tr = cache_dir / "stories-v4.tr.apple.apple_icloud.html"
+    stories_tr = cache_dir / "stories.tr.apple.apple_icloud.html"
 
     portal_ready = (cache_dir / "index.html").exists()
     scan_ready = (cache_dir / "agrandiz.sqlite").exists()
@@ -653,7 +695,7 @@ def app_html():
 <body>
   <div class="shell">
     <header class="hero">
-      <div class="brand">Agrandiz <span>local beta</span></div>
+      <div class="brand">Agrandiz <span>{version_label}</span></div>
       <h1>Preview-first story discovery for Apple Photos.</h1>
       <p>
         All processing runs locally on this Mac. No upload, no deletion.
@@ -670,6 +712,11 @@ def app_html():
       <article class="card">
         <div class="label">Demo portal</div>
         <div class="value {'ok' if portal_ready else 'warn'}">{'Ready' if portal_ready else 'Not built yet'}</div>
+      </article>
+
+      <article class="card">
+        <div class="label">Version</div>
+        <div class="value">{version_label}</div>
       </article>
 
       <article class="card">
@@ -815,7 +862,7 @@ def find_free_port(start):
 
 
 def main():
-    log("Agrandiz local beta starting.")
+    log(f"{app_version_string()} starting.")
     log("No Tkinter. Web UI mode.")
     log(f"Python: {sys.executable}")
     log(f"Bundled project: {bundled_project_dir()}")

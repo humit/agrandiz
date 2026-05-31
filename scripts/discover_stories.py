@@ -3,150 +3,23 @@
 import argparse
 import html
 import json
+import re
 import shutil
 import sqlite3
-from collections import Counter
+from collections import defaultdict
 from datetime import datetime
 from pathlib import Path
 from urllib.parse import quote
 
-
-STORY_DEFS = [
-    {
-        "id": "childhood_moments",
-        "emoji": "🧒",
-        "title_tr": "Çocukluk Anları",
-        "title_en": "Childhood Moments",
-        "desc_tr": "Çocuk etiketli karelerden aile albümü veya kısa büyüme hikâyesi.",
-        "desc_en": "Child-labeled moments suitable for a family album or short growing-up story.",
-        "keywords": ["child", "children", "kid", "baby", "boy", "girl", "school", "playground"],
-        "min_score": 0.45,
-        "max_items": 36,
-        "output_types": ["web_gallery", "family_album", "short_reel"],
-    },
-    {
-        "id": "whatsapp_highlights",
-        "emoji": "💬",
-        "title_tr": "WhatsApp’tan Gelen Güçlü Anılar",
-        "title_en": "WhatsApp Highlights",
-        "desc_tr": "Mesaj geçmişinin içinde kaybolmuş, albüme veya hediye seçkisine dönüşebilecek kareler.",
-        "desc_en": "Strong memories hidden in chat history, suitable for a gift album or highlight gallery.",
-        "album_like": "WhatsApp",
-        "min_score": 0.55,
-        "max_items": 36,
-        "output_types": ["web_gallery", "gift_album", "short_reel"],
-    },
-    {
-        "id": "fishing_and_sea",
-        "emoji": "🎣",
-        "title_tr": "Balık, Deniz ve Su Hikâyeleri",
-        "title_en": "Fishing, Sea & Water Stories",
-        "desc_tr": "Balık, deniz, su, tekne ve sahil temalı hediye albümü veya reel adayı.",
-        "desc_en": "Fish, sea, water, boat and coast themed candidates for a gift album or reel.",
-        "keywords": ["fish", "fishing", "sea", "water", "boat", "coast", "beach", "lake", "ocean", "shark"],
-        "min_score": 0.45,
-        "max_items": 36,
-        "output_types": ["gift_album", "short_reel", "web_gallery"],
-    },
-    {
-        "id": "outdoor_and_camping",
-        "emoji": "🏕️",
-        "title_tr": "Açık Hava, Kamp ve Yol",
-        "title_en": "Outdoor, Camping & Roads",
-        "desc_tr": "Kamp, yürüyüş, doğa, yol ve açık hava anılarından kısa hikâye adayları.",
-        "desc_en": "Camping, walking, nature, roads and outdoor memories suitable for short stories.",
-        "keywords": ["camping", "tent", "tree", "forest", "mountain", "desert", "road", "outdoor", "grass", "plant", "sky"],
-        "min_score": 0.45,
-        "max_items": 36,
-        "output_types": ["short_reel", "web_gallery", "travel_album"],
-    },
-    {
-        "id": "tables_and_gatherings",
-        "emoji": "🍽️",
-        "title_tr": "Sofralar ve Buluşmalar",
-        "title_en": "Tables & Gatherings",
-        "desc_tr": "Yemek, masa, aile ve arkadaş buluşmalarından ritüel/hafıza albümü adayı.",
-        "desc_en": "Food, table, family and friend gatherings suitable for ritual/memory albums.",
-        "keywords": ["food", "meal", "table", "restaurant", "plate", "drink", "brunch", "dinner", "people"],
-        "min_score": 0.42,
-        "max_items": 36,
-        "output_types": ["web_gallery", "family_album", "short_reel"],
-    },
-    {
-        "id": "pets_and_animals",
-        "emoji": "🐾",
-        "title_tr": "Patili ve Hayvanlı Anılar",
-        "title_en": "Pets & Animal Moments",
-        "desc_tr": "Kedi, köpek ve diğer hayvan temalı eğlenceli hediye/reel adayları.",
-        "desc_en": "Cat, dog and animal-themed candidates for playful gift albums or reels.",
-        "keywords": ["animal", "dog", "cat", "canine", "puppy", "pet", "bird", "horse"],
-        "min_score": 0.45,
-        "max_items": 36,
-        "output_types": ["gift_album", "short_reel", "web_gallery"],
-    },
-    {
-        "id": "travel_and_places",
-        "emoji": "🧳",
-        "title_tr": "Seyahat ve Yer Hafızası",
-        "title_en": "Travel & Place Memory",
-        "desc_tr": "Yolculuk, şehir, manzara, yapı ve uzak yerlerden seyahat hikâyesi adayı.",
-        "desc_en": "Travel, city, landscape, architecture and far-away place story candidates.",
-        "keywords": ["building", "land", "sky", "mountain", "city", "road", "beach", "desert", "water", "aircraft", "hotel"],
-        "min_score": 0.50,
-        "max_items": 36,
-        "output_types": ["travel_album", "short_reel", "web_gallery"],
-    },
-    {
-        "id": "pandemic_days",
-        "emoji": "🏠",
-        "title_tr": "Pandemi Günleri",
-        "title_en": "Pandemic Days",
-        "desc_tr": "2020–2021 döneminden ev, ekran, çocuk, yemek ve gündelik hayat hafızası.",
-        "desc_en": "Home, screens, children, food and daily life memories from 2020–2021.",
-        "from_date": "2020-03-01",
-        "to_date": "2021-12-31",
-        "keywords": ["home", "interior room", "food", "table", "child", "people", "mask", "computer", "screen"],
-        "min_score": 0.35,
-        "max_items": 36,
-        "output_types": ["period_album", "web_gallery", "short_reel"],
-    },
-    {
-        "id": "surprisingly_beautiful",
-        "emoji": "✨",
-        "title_tr": "Beklenmedik Güzel Kareler",
-        "title_en": "Surprisingly Beautiful",
-        "desc_tr": "Apple Photos analizine göre yüksek estetik skorlu, muhtemelen unutulmuş kareler.",
-        "desc_en": "High-scoring images according to Apple Photos analysis, probably forgotten.",
-        "min_score": 0.70,
-        "max_items": 36,
-        "output_types": ["short_reel", "web_gallery", "cover_candidates"],
-    },
-]
+try:
+    from PIL import Image
+    import imagehash
+except Exception:
+    Image = None
+    imagehash = None
 
 
-TR_REEL_TEMPLATES = {
-    "childhood_moments": "Çocukların büyüme hikâyesinden kısa ve duygusal bir reel.",
-    "whatsapp_highlights": "WhatsApp’ın içinde kaybolmuş sürpriz anılardan hızlı bir highlight reel.",
-    "fishing_and_sea": "Balık, deniz ve su kenarı anılarından hediye edilebilir kısa video.",
-    "outdoor_and_camping": "Kamp, yürüyüş ve açık hava anılarından ritmik bir doğa reel’i.",
-    "tables_and_gatherings": "Sofralar, arkadaşlar ve aile buluşmalarından sıcak bir kısa hikâye.",
-    "pets_and_animals": "Hayvanlı, komik ve sevimli anlardan paylaşılabilir kısa video.",
-    "travel_and_places": "Yol, manzara ve şehir karelerinden seyahat tadında kısa video.",
-    "pandemic_days": "Evde geçen pandemi günlerinden dönem hafızası kısa filmi.",
-    "surprisingly_beautiful": "Apple’ın yüksek puanladığı beklenmedik karelerden görsel bir seçki.",
-}
-
-EN_REEL_TEMPLATES = {
-    "childhood_moments": "A short emotional reel from children’s growing-up moments.",
-    "whatsapp_highlights": "A fast highlight reel from memories hidden inside WhatsApp.",
-    "fishing_and_sea": "A giftable short video built from fishing, sea and water moments.",
-    "outdoor_and_camping": "A rhythmic outdoor reel from camping, walking and nature memories.",
-    "tables_and_gatherings": "A warm short story from tables, friends and family gatherings.",
-    "pets_and_animals": "A playful short video from cute and funny animal moments.",
-    "travel_and_places": "A travel-flavored short video from roads, places and landscapes.",
-    "pandemic_days": "A period-memory short film from days spent at home during the pandemic.",
-    "surprisingly_beautiful": "A visual selection from unexpectedly high-scoring images.",
-}
+WORD_RE = re.compile(r"[a-z0-9]+(?:[-_][a-z0-9]+)?", re.IGNORECASE)
 
 
 def esc(value):
@@ -168,19 +41,68 @@ def load_json(raw, default=None):
         return default
 
 
+def normalize(value):
+    if value is None:
+        return ""
+    return str(value).strip().lower()
+
+
+def tokenize_text(value):
+    return set(WORD_RE.findall(normalize(value)))
+
+
+def phrase_in_text(phrase, text):
+    """
+    Safe phrase matching.
+    Avoids bugs like keyword 'cat' matching 'fortification'.
+    """
+    phrase = normalize(phrase)
+    text = normalize(text)
+
+    if not phrase:
+        return False
+
+    if " " in phrase or "-" in phrase:
+        return phrase in text
+
+    return phrase in tokenize_text(text)
+
+
+def labels_match_any(labels, terms):
+    labels_set = {normalize(x) for x in labels}
+    for term in terms:
+        term = normalize(term)
+        if term in labels_set:
+            return True
+    return False
+
+
+def evidence_matches(labels, caption, filename, album, terms):
+    labels = [normalize(x) for x in labels]
+    caption = normalize(caption)
+    filename = normalize(filename)
+    album = normalize(album)
+
+    searchable_text = " ".join([caption, filename, album])
+
+    for term in terms:
+        term = normalize(term)
+
+        if term in labels:
+            return True
+
+        # Phrase / exact token match for caption, filename, album.
+        if phrase_in_text(term, searchable_text):
+            return True
+
+    return False
+
+
 def extension_for(path):
     suffix = path.suffix.lower()
     if suffix in [".jpg", ".jpeg", ".png", ".webp", ".gif"]:
         return suffix
     return ".jpg"
-
-
-def copy_preview(src, uuid, thumbs_dir):
-    ext = extension_for(src)
-    dst = thumbs_dir / f"{uuid}{ext}"
-    if not dst.exists():
-        shutil.copy2(src, dst)
-    return f"thumbs/{quote(dst.name)}"
 
 
 def choose_source_path(row):
@@ -193,59 +115,91 @@ def choose_source_path(row):
     return None
 
 
-def normalize(value):
-    if value is None:
-        return ""
-    return str(value).strip().lower()
+def copy_preview(src, uuid, thumbs_dir):
+    ext = extension_for(src)
+    dst = thumbs_dir / f"{uuid}{ext}"
+    if not dst.exists():
+        shutil.copy2(src, dst)
+    return f"thumbs/{quote(dst.name)}"
 
 
-def dedupe_key(item):
-    filename = normalize(item.get("filename"))
-    caption = normalize(item.get("caption"))
+def compute_phash(path):
+    if Image is None or imagehash is None:
+        return None
+    try:
+        with Image.open(path) as img:
+            return str(imagehash.phash(img))
+    except Exception:
+        return None
+
+
+def hamming_hash(a, b):
+    if not a or not b or len(a) != len(b):
+        return 999
+    try:
+        return bin(int(a, 16) ^ int(b, 16)).count("1")
+    except Exception:
+        return 999
+
+
+def item_event_signature(item):
+    """
+    Groups near burst / same-moment visual variants even if captions differ.
+    This catches cases like three costume photos with same timestamp, dimensions, labels.
+    """
+    date_key = (item.get("date") or "")[:19]
+    labels_key = tuple(sorted(item.get("labels") or []))
+    width = item.get("width")
+    height = item.get("height")
     album = normalize(item.get("album"))
-    score = item.get("score")
-    score_bucket = round(float(score), 3) if score is not None else ""
-    if filename or caption:
-        return (filename, caption, album, score_bucket)
-    return (item.get("uuid"),)
+    return (date_key, album, width, height, labels_key)
 
 
-def row_text(row):
-    labels = " ".join(load_json(row["labels_normalized_json"]))
-    caption = row["ai_caption"] or ""
-    filename = row["original_filename"] or ""
-    albums = " ".join(load_json(row["albums_json"]))
-    return f"{labels} {caption} {filename} {albums}".lower()
+def item_soft_signature(item):
+    """
+    Fallback near-duplicate signature when imagehash is not available.
+    More aggressive than UUID but less aggressive than caption-only.
+    """
+    caption_tokens = tokenize_text(item.get("caption") or "")
+    reduced_caption = tuple(sorted(t for t in caption_tokens if len(t) > 3))
+    return (
+        (item.get("date") or "")[:19],
+        item.get("width"),
+        item.get("height"),
+        tuple(sorted(item.get("labels") or [])),
+        reduced_caption[:8],
+    )
 
 
-def row_matches_story(row, story):
-    text = row_text(row)
+def is_near_duplicate(item, selected, threshold):
+    """
+    Prefer perceptual hash if available. Fall back to event/signature logic.
+    """
+    if item.get("phash"):
+        for other in selected:
+            if other.get("phash") and hamming_hash(item["phash"], other["phash"]) <= threshold:
+                return True
 
-    score = row["score_overall"]
-    if story.get("min_score") is not None:
-        if score is None or float(score) < float(story["min_score"]):
-            return False
+    event_sig = item_event_signature(item)
+    soft_sig = item_soft_signature(item)
 
-    if story.get("album_like"):
-        albums = " ".join(load_json(row["albums_json"])).lower()
-        if story["album_like"].lower() not in albums:
-            return False
+    for other in selected:
+        if item_event_signature(other) == event_sig:
+            return True
+        if item_soft_signature(other) == soft_sig:
+            return True
 
-    if story.get("from_date"):
-        date = row["date"] or ""
-        if date[:10] < story["from_date"]:
-            return False
+    return False
 
-    if story.get("to_date"):
-        date = row["date"] or ""
-        if date[:10] > story["to_date"]:
-            return False
 
-    keywords = story.get("keywords") or []
-    if keywords:
-        return any(keyword.lower() in text for keyword in keywords)
-
-    return True
+def item_visual_key(item):
+    """
+    Used for cross-story reuse.
+    If phash exists, use it. Otherwise use event/soft signatures.
+    """
+    if item.get("phash"):
+        return ("phash", item["phash"])
+    return ("event", item_event_signature(item), item_soft_signature(item))
 
 
 def fetch_rows(conn):
@@ -276,23 +230,24 @@ def fetch_rows(conn):
     ).fetchall()
 
 
-def build_item(row, thumbs_dir):
-    source = choose_source_path(row)
-    if not source:
+def build_item(row, thumbs_dir, use_phash):
+    src = choose_source_path(row)
+    if not src:
         return None
 
-    thumb = copy_preview(source, row["uuid"], thumbs_dir)
+    thumb = copy_preview(src, row["uuid"], thumbs_dir)
     albums = load_json(row["albums_json"])
     labels = load_json(row["labels_normalized_json"])
+    album = albums[0] if albums else ""
 
-    return {
+    item = {
         "uuid": row["uuid"],
         "filename": row["original_filename"],
         "date": row["date"],
         "caption": row["ai_caption"],
         "score": row["score_overall"],
-        "album": albums[0] if albums else "",
-        "labels": labels[:6],
+        "album": album,
+        "labels": labels[:8],
         "is_missing": bool(row["is_missing"]),
         "original_status": "icloud" if row["is_missing"] else "local",
         "preview_status": "ready",
@@ -302,24 +257,156 @@ def build_item(row, thumbs_dir):
         "live_photo": bool(row["live_photo"]),
         "width": row["width"],
         "height": row["height"],
+        "phash": None
     }
+
+    if use_phash and imagehash is not None:
+        thumb_path = thumbs_dir.parent / thumb
+        item["phash"] = compute_phash(thumb_path)
+
+    return item
+
+
+def row_matches_story(row, story):
+    score = row["score_overall"]
+    min_score = story.get("min_score")
+    if min_score is not None:
+        if score is None or float(score) < float(min_score):
+            return False
+
+    date = row["date"] or ""
+    if story.get("from_date") and date[:10] < story["from_date"]:
+        return False
+    if story.get("to_date") and date[:10] > story["to_date"]:
+        return False
+
+    labels = load_json(row["labels_normalized_json"])
+    caption = row["ai_caption"] or ""
+    filename = row["original_filename"] or ""
+    albums = load_json(row["albums_json"])
+    album = " ".join(albums)
+
+    album_like = story.get("album_like")
+    if album_like and normalize(album_like) not in normalize(album):
+        return False
+
+    exclude_any = story.get("exclude_any") or []
+    if evidence_matches(labels, caption, filename, album, exclude_any):
+        return False
+
+    include_any = story.get("include_any") or []
+    if include_any:
+        return evidence_matches(labels, caption, filename, album, include_any)
+
+    # Generic score-based story.
+    return True
+
+
+def item_match_strength(item, story):
+    labels = item.get("labels") or []
+    caption = item.get("caption") or ""
+    filename = item.get("filename") or ""
+    album = item.get("album") or ""
+
+    include_any = story.get("include_any") or []
+    score = float(item.get("score") or 0)
+
+    evidence = 0
+    matched_terms = []
+
+    for term in include_any:
+        if evidence_matches(labels, caption, filename, album, [term]):
+            evidence += 1
+            matched_terms.append(term)
+
+    if story.get("album_like") and normalize(story["album_like"]) in normalize(album):
+        evidence += 1
+        matched_terms.append(f"album:{story['album_like']}")
+
+    return {
+        "evidence": evidence,
+        "matched_terms": matched_terms,
+        "rank_score": (evidence * 10) + score
+    }
+
+
+def build_story(rows, story, thumbs_dir, globally_used, config):
+    max_items = story.get("max_items") or config["global"].get("max_items_per_story", 28)
+    threshold = config["global"].get("near_duplicate_hamming_threshold", 5)
+    avoid_cross = config["global"].get("avoid_cross_story_reuse", True)
+    use_phash = Image is not None and imagehash is not None
+
+    candidates = []
+
+    for row in rows:
+        if not row_matches_story(row, story):
+            continue
+
+        item = build_item(row, thumbs_dir, use_phash)
+        if not item:
+            continue
+
+        strength = item_match_strength(item, story)
+        item["matched_terms"] = strength["matched_terms"]
+        item["_rank_score"] = strength["rank_score"]
+
+        visual_key = item_visual_key(item)
+        if avoid_cross and visual_key in globally_used and not story.get("allow_reuse"):
+            continue
+
+        candidates.append(item)
+
+    # Prefer thematic evidence first, then aesthetic score.
+    candidates.sort(key=lambda x: (x["_rank_score"], float(x.get("score") or 0)), reverse=True)
+
+    selected = []
+    event_counts = defaultdict(int)
+    max_per_event = config["global"].get("max_per_event_signature", 2)
+
+    for item in candidates:
+        if is_near_duplicate(item, selected, threshold):
+            continue
+
+        event_sig = item_event_signature(item)
+        if event_counts[event_sig] >= max_per_event:
+            continue
+
+        selected.append(item)
+        event_counts[event_sig] += 1
+
+        if len(selected) >= max_items:
+            break
+
+    for item in selected:
+        globally_used.add(item_visual_key(item))
+        item.pop("_rank_score", None)
+
+    return selected
 
 
 def score_story(items, story):
     if not items:
         return 0
 
-    avg_score = sum(float(i["score"] or 0) for i in items) / len(items)
-    count_score = min(len(items) / 24, 1.0)
-    local_ratio = sum(1 for i in items if i["original_status"] == "local") / len(items)
-    preview_ratio = sum(1 for i in items if i["preview_status"] == "ready") / len(items)
+    avg_score = sum(float(i.get("score") or 0) for i in items) / len(items)
+    count_score = min(len(items) / 20, 1.0)
+    preview_ratio = sum(1 for i in items if i.get("preview_status") == "ready") / len(items)
+    local_ratio = sum(1 for i in items if i.get("original_status") == "local") / len(items)
+    evidence_avg = sum(len(i.get("matched_terms") or []) for i in items) / len(items)
+    evidence_score = min(evidence_avg / 3, 1.0)
 
-    # Story readiness: preview matters more than local original for first MVP.
-    readiness = (avg_score * 0.45) + (count_score * 0.30) + (preview_ratio * 0.20) + (local_ratio * 0.05)
+    readiness = (
+        avg_score * 0.35
+        + count_score * 0.25
+        + preview_ratio * 0.15
+        + evidence_score * 0.20
+        + local_ratio * 0.05
+    )
+
     return round(readiness * 100, 1)
 
 
-def suggest_reel_structure(items, lang):
+def suggest_reel_structure(items):
     n = len(items)
     if n >= 24:
         duration = "30–45s"
@@ -335,78 +422,68 @@ def suggest_reel_structure(items, lang):
         "duration": duration,
         "pace": pace,
         "suggested_clip_count": min(n, 24),
-        "format": "9:16",
+        "format": "9:16"
     }
 
 
-def build_stories(rows, thumbs_dir):
+def build_stories(rows, config, thumbs_dir):
+    story_defs = sorted(
+        config["stories"],
+        key=lambda s: s.get("specificity", 0),
+        reverse=True
+    )
+
+    globally_used = set()
     stories = []
 
-    for story in STORY_DEFS:
-        items = []
-        seen = set()
+    for story in story_defs:
+        items = build_story(rows, story, thumbs_dir, globally_used, config)
 
-        for row in rows:
-            if not row_matches_story(row, story):
-                continue
-
-            item = build_item(row, thumbs_dir)
-            if not item:
-                continue
-
-            key = dedupe_key(item)
-            if key in seen:
-                continue
-            seen.add(key)
-
-            items.append(item)
-
-            if len(items) >= story["max_items"]:
-                break
-
-        if not items:
+        if len(items) < 4:
             continue
 
-        score = score_story(items, story)
+        story_score = score_story(items, story)
 
-        # Only show stories that look somewhat meaningful.
-        if len(items) < 4 and score < 45:
-            continue
+        stories.append({
+            "id": story["id"],
+            "emoji": story.get("emoji", "•"),
+            "specificity": story.get("specificity", 0),
+            "generic": bool(story.get("generic", False)),
+            "title_tr": story["title_tr"],
+            "title_en": story["title_en"],
+            "desc_tr": story["desc_tr"],
+            "desc_en": story["desc_en"],
+            "output_types": story.get("output_types", []),
+            "story_score": story_score,
+            "item_count": len(items),
+            "preview_ready_count": len(items),
+            "original_local_count": sum(1 for i in items if i["original_status"] == "local"),
+            "original_icloud_count": sum(1 for i in items if i["original_status"] == "icloud"),
+            "reel_tr": story.get("reel_tr", ""),
+            "reel_en": story.get("reel_en", ""),
+            "reel_structure": suggest_reel_structure(items),
+            "items": items
+        })
 
-        stories.append(
-            {
-                "id": story["id"],
-                "emoji": story["emoji"],
-                "title_tr": story["title_tr"],
-                "title_en": story["title_en"],
-                "desc_tr": story["desc_tr"],
-                "desc_en": story["desc_en"],
-                "output_types": story["output_types"],
-                "story_score": score,
-                "item_count": len(items),
-                "preview_ready_count": len(items),
-                "original_local_count": sum(1 for i in items if i["original_status"] == "local"),
-                "original_icloud_count": sum(1 for i in items if i["original_status"] == "icloud"),
-                "reel_tr": TR_REEL_TEMPLATES.get(story["id"], ""),
-                "reel_en": EN_REEL_TEMPLATES.get(story["id"], ""),
-                "reel_structure": suggest_reel_structure(items, "tr"),
-                "items": items,
-            }
-        )
-
-    stories.sort(key=lambda s: (s["story_score"], s["item_count"]), reverse=True)
+    # Keep specific stories first; score breaks ties.
+    stories.sort(key=lambda s: (s["specificity"], s["story_score"], s["item_count"]), reverse=True)
     return stories
 
 
 def render_item(item, lang):
-    labels = "".join(f'<span class="chip">{esc(label)}</span>' for label in item["labels"])
-    score = f"{float(item['score']):.3f}" if item["score"] is not None else "-"
-    caption = item["caption"] or ("Açıklama yok" if lang == "tr" else "No caption")
+    labels = "".join(f'<span class="chip">{esc(label)}</span>' for label in item.get("labels", [])[:6])
+    terms = "".join(f'<span class="chip matched">{esc(term)}</span>' for term in item.get("matched_terms", [])[:4])
+
+    score = f"{float(item['score']):.3f}" if item.get("score") is not None else "-"
+    caption = item.get("caption") or ("Açıklama yok" if lang == "tr" else "No caption")
     album_label = "Albüm" if lang == "tr" else "Album"
 
-    original = "Orijinal iCloud’da" if item["original_status"] == "icloud" else "Orijinal lokal"
-    if lang == "en":
+    if lang == "tr":
+        original = "Orijinal iCloud’da" if item["original_status"] == "icloud" else "Orijinal lokal"
+        preview = "Preview hazır"
+    else:
         original = "Original in iCloud" if item["original_status"] == "icloud" else "Original local"
+        preview = "Preview ready"
 
     return f"""
     <article class="story-photo">
@@ -415,13 +492,13 @@ def render_item(item, lang):
       </div>
       <div class="story-photo-meta">
         <div class="photo-badges">
-          <span class="mini-badge">Preview hazır</span>
+          <span class="mini-badge">{esc(preview)}</span>
           <span class="mini-badge">{esc(original)}</span>
           <span class="mini-badge">Score {score}</span>
         </div>
         <div class="photo-caption">{esc(caption)}</div>
-        <div class="photo-sub">{album_label}: {esc(item['album'] or '-')} · {esc(item['date'] or '')}</div>
-        <div class="chips">{labels}</div>
+        <div class="photo-sub">{album_label}: {esc(item.get('album') or '-')} · {esc(item.get('date') or '')}</div>
+        <div class="chips">{terms}{labels}</div>
       </div>
     </article>
     """
@@ -479,19 +556,25 @@ def render_story_card(story, lang):
     """
 
 
-def render_page(stories, lang):
+def render_page(stories, lang, config_path):
     if lang == "tr":
-        title = "agrandiz hikâye keşfi"
-        hero = "Albüm ve Reels/Shorts adayı hikâyeler"
-        subtitle = "Photos/iCloud arşivindeki preview’ler, Apple AI etiketleri, caption’lar ve estetik skorlarla ilk çalıştırmada bulunan hikâye adayları."
+        title = "agrandiz ham hikâye keşfi"
+        hero = "Daha temiz albüm ve Reels/Shorts adayları"
+        subtitle = "Config-driven story engine, exact token matching, near-duplicate cleanup ve cross-story diversity ile üretilmiş ikinci keşif çıktısı."
         summary = "Bu sayfa orijinalleri indirmeden, mevcut preview cache üzerinden oluşturuldu."
         back = "Demo portalına dön"
+        candidates_label = "story adayı"
+        previews_label = "seçili preview"
+        downloaded_label = "indirilen orijinal"
     else:
-        title = "agrandiz story discovery"
-        hero = "Album and Reels/Shorts story candidates"
-        subtitle = "Story candidates discovered on first run using Photos/iCloud previews, Apple AI labels, captions and aesthetic scores."
+        title = "agrandiz raw story discovery"
+        hero = "Cleaner album and Reels/Shorts candidates"
+        subtitle = "Second discovery output generated with config-driven story rules, exact token matching, near-duplicate cleanup and cross-story diversity."
         summary = "This page was generated from the preview cache without downloading originals."
         back = "Back to demo portal"
+        candidates_label = "story candidates"
+        previews_label = "selected previews"
+        downloaded_label = "originals downloaded"
 
     story_cards = "\n".join(render_story_card(story, lang) for story in stories)
 
@@ -515,9 +598,7 @@ def render_page(stories, lang):
       border-radius: 28px;
       box-shadow: 0 10px 30px rgba(0,0,0,0.08);
     }}
-    .summary-card {{
-      padding: 22px;
-    }}
+    .summary-card {{ padding: 22px; }}
     .summary-card .value {{
       font-size: 40px;
       font-weight: 700;
@@ -584,7 +665,7 @@ def render_page(stories, lang):
       background: #f3f4f6;
       color: #3a3a3c;
     }}
-    .output-chip {{
+    .output-chip, .chip.matched {{
       background: rgba(0,113,227,0.10);
       color: #0071e3;
     }}
@@ -618,9 +699,7 @@ def render_page(stories, lang):
       object-fit: cover;
       display: block;
     }}
-    .story-photo-meta {{
-      padding: 12px;
-    }}
+    .story-photo-meta {{ padding: 12px; }}
     .photo-badges, .chips {{
       display: flex;
       flex-wrap: wrap;
@@ -653,46 +732,38 @@ def render_page(stories, lang):
       font-weight: 650;
     }}
     @media (max-width: 1100px) {{
-      .story-photo-grid {{
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-      }}
-      .story-summary {{
-        grid-template-columns: 1fr;
-      }}
-      .story-head {{
-        flex-direction: column;
-      }}
+      .story-photo-grid {{ grid-template-columns: repeat(2, minmax(0, 1fr)); }}
+      .story-summary {{ grid-template-columns: 1fr; }}
+      .story-head {{ flex-direction: column; }}
     }}
     @media (max-width: 620px) {{
-      .story-photo-grid {{
-        grid-template-columns: 1fr;
-      }}
+      .story-photo-grid {{ grid-template-columns: 1fr; }}
     }}
   </style>
 </head>
 <body class="theme-apple profile-apple_icloud">
   <div class="shell">
     <header class="hero">
-      <div class="brand">agrandiz <span>story discovery</span></div>
+      <div class="brand">agrandiz <span>raw story discovery</span></div>
       <div class="hero-copy">
         <h1>{esc(hero)}</h1>
         <p>{esc(subtitle)}</p>
-        <div class="meta-line">{esc(summary)}</div>
+        <div class="meta-line">{esc(summary)} · Config: <strong>{esc(config_path)}</strong></div>
       </div>
     </header>
 
     <section class="story-summary">
       <article class="summary-card">
         <div class="value">{num(len(stories))}</div>
-        <div class="label">story candidates</div>
+        <div class="label">{esc(candidates_label)}</div>
       </article>
       <article class="summary-card">
         <div class="value">{num(sum(s['item_count'] for s in stories))}</div>
-        <div class="label">selected preview items</div>
+        <div class="label">{esc(previews_label)}</div>
       </article>
       <article class="summary-card">
         <div class="value">0</div>
-        <div class="label">originals downloaded</div>
+        <div class="label">{esc(downloaded_label)}</div>
       </article>
     </section>
 
@@ -705,10 +776,44 @@ def render_page(stories, lang):
 """
 
 
+def write_index_links():
+    p = Path("cache/index.html")
+    if not p.exists():
+        return
+
+    text = p.read_text()
+
+    insert = '''
+      <a class="portal-card" href="stories-raw.tr.apple.apple_icloud.html">
+        <div class="eyebrow">Türkçe · Raw Story Discovery</div>
+        <h2>Daha Temiz Hikâye Adayları</h2>
+        <p>Config-driven, daha sıkı eşleşme ve duplicate temizliği ile üretilen albüm/reel adayları.</p>
+      </a>
+
+      <a class="portal-card" href="stories-raw.en.apple.apple_icloud.html">
+        <div class="eyebrow">English · Raw Story Discovery</div>
+        <h2>Cleaner Story Candidates</h2>
+        <p>Album/reel candidates generated with config-driven rules, stricter matching and duplicate cleanup.</p>
+      </a>
+'''
+
+    if "stories-raw.tr.apple.apple_icloud.html" in text:
+        return
+
+    needle = '''    </section>
+
+    <section class="workflow">'''
+
+    if needle in text:
+        text = text.replace(needle, insert + "\n" + needle)
+        p.write_text(text)
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--db", default="cache/agrandiz.sqlite")
     parser.add_argument("--outdir", default="cache")
+    parser.add_argument("--config", default="config/story_profiles/apple_icloud_default.json")
     parser.add_argument("--lang", default="both", choices=["tr", "en", "both"])
     args = parser.parse_args()
 
@@ -717,31 +822,39 @@ def main():
     outdir.mkdir(parents=True, exist_ok=True)
     thumbs_dir.mkdir(parents=True, exist_ok=True)
 
+    config = json.loads(Path(args.config).read_text())
+
     conn = sqlite3.connect(args.db)
     conn.row_factory = sqlite3.Row
     rows = fetch_rows(conn)
     conn.close()
 
-    stories = build_stories(rows, thumbs_dir)
+    stories = build_stories(rows, config, thumbs_dir)
 
-    json_path = outdir / "story_candidates.json"
-    json_path.write_text(json.dumps({
+    out_json = outdir / "story_candidates_raw.json"
+    out_json.write_text(json.dumps({
         "generated_at": datetime.now().isoformat(timespec="seconds"),
+        "config": args.config,
+        "phash_enabled": Image is not None and imagehash is not None,
         "story_count": len(stories),
-        "stories": stories,
+        "stories": stories
     }, indent=2, ensure_ascii=False), encoding="utf-8")
 
-    print(f"Wrote {json_path}")
+    print(f"Wrote {out_json}")
+    print(f"phash_enabled: {Image is not None and imagehash is not None}")
     print(f"Discovered {len(stories)} story candidates")
 
     langs = ["tr", "en"] if args.lang == "both" else [args.lang]
-
     for lang in langs:
-        html_text = render_page(stories, lang)
-        out_file = outdir / f"stories.{lang}.apple.apple_icloud.html"
+        html_text = render_page(stories, lang, args.config)
+        out_file = outdir / f"stories-raw.{lang}.apple.apple_icloud.html"
         out_file.write_text(html_text, encoding="utf-8")
         print(f"Wrote {out_file}")
 
+    write_index_links()
+
 
 if __name__ == "__main__":
+    from agrandiz_version import print_version
+    print_version()
     main()

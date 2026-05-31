@@ -78,7 +78,7 @@ def filter_data(data, excludes):
     filtered = dict(data)
     filtered["generated_at"] = datetime.now().isoformat(timespec="seconds")
     filtered["source"] = data.get("source")
-    filtered["mode"] = "moment_renderer_v4"
+    filtered["mode"] = "moment_renderer"
     filtered["exclude_counts"] = {
         "uuids": len(excludes["uuids"]),
         "phashes": len(excludes["phashes"]),
@@ -322,7 +322,7 @@ def render_story(story, lang):
 
 def render_page(data, lang):
     if lang == "tr":
-        title = "agrandiz hikâye keşfi v4"
+        title = "agrandiz hikâye keşfi"
         hero = "Kürasyon kontrollü moment galerisi"
         subtitle = "Tam görünen thumbnail’ler, hızlı exclude akışı ve hover/touch micro-sequence ile daha kullanılabilir hikâye adayları."
         candidates_label = "story adayı"
@@ -334,7 +334,7 @@ def render_page(data, lang):
         panel_title = "Kürasyon araçları"
         panel_desc = "Exclude butonuna bastığında kart hemen gizlenir ve aşağıdaki JSON güncellenir. Kalıcı yapmak için JSON’u config/excludes.json dosyasına yapıştırıp sayfayı yeniden üret."
     else:
-        title = "agrandiz story discovery v4"
+        title = "agrandiz story discovery"
         hero = "Curatable moment gallery"
         subtitle = "Full-image thumbnails, fast exclude flow and hover/touch micro-sequences for more usable story candidates."
         candidates_label = "story candidates"
@@ -675,7 +675,7 @@ def render_page(data, lang):
 <body class="theme-apple profile-apple_icloud">
   <div class="shell">
     <header class="hero">
-      <div class="brand">agrandiz <span>story discovery v4</span></div>
+      <div class="brand">agrandiz <span>story discovery</span></div>
       <div class="hero-copy">
         <h1>{esc(hero)}</h1>
         <p>{esc(subtitle)}</p>
@@ -904,20 +904,20 @@ def write_index_links():
     text = p.read_text()
 
     insert = '''
-      <a class="portal-card" href="stories-v4.tr.apple.apple_icloud.html">
-        <div class="eyebrow">Türkçe · Story Discovery v4</div>
+      <a class="portal-card" href="stories.tr.apple.apple_icloud.html">
+        <div class="eyebrow">Türkçe · Story Discovery</div>
         <h2>Kürasyon Kontrollü Moment Galerisi</h2>
         <p>Tam görünen fotoğraflar, exclude butonları ve hover micro-sequence ile gelişmiş hikâye adayları.</p>
       </a>
 
-      <a class="portal-card" href="stories-v4.en.apple.apple_icloud.html">
-        <div class="eyebrow">English · Story Discovery v4</div>
+      <a class="portal-card" href="stories.en.apple.apple_icloud.html">
+        <div class="eyebrow">English · Story Discovery</div>
         <h2>Curatable Moment Gallery</h2>
         <p>Full-image thumbnails, exclude buttons and hover micro-sequences for story candidates.</p>
       </a>
 '''
 
-    if "stories-v4.tr.apple.apple_icloud.html" in text:
+    if "stories.tr.apple.apple_icloud.html" in text:
         return
 
     needle = '''    </section>
@@ -931,7 +931,7 @@ def write_index_links():
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--input", default="cache/story_candidates_v3.json")
+    parser.add_argument("--input", default="cache/story_candidates_grouped.json")
     parser.add_argument("--exclude", default="config/excludes.json")
     parser.add_argument("--outdir", default="cache")
     parser.add_argument("--lang", default="both", choices=["tr", "en", "both"])
@@ -944,7 +944,7 @@ def main():
     excludes = normalize_excludes(load_json_file(args.exclude, {}))
     data = filter_data(raw, excludes)
 
-    json_path = outdir / "story_candidates_v4.json"
+    json_path = outdir / "story_candidates.json"
     json_path.write_text(json.dumps(data, indent=2, ensure_ascii=False), encoding="utf-8")
     print(f"Wrote {json_path}")
 
@@ -952,7 +952,7 @@ def main():
 
     for lang in langs:
         html_text = render_page(data, lang)
-        html_path = outdir / f"stories-v4.{lang}.apple.apple_icloud.html"
+        html_path = outdir / f"stories.{lang}.apple.apple_icloud.html"
         html_path.write_text(html_text, encoding="utf-8")
         print(f"Wrote {html_path}")
 
@@ -973,4 +973,6 @@ def main():
 
 
 if __name__ == "__main__":
+    from agrandiz_version import print_version
+    print_version()
     main()
