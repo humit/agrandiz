@@ -31,7 +31,7 @@
   "portal.output_folder": "Output folder",
   "portal.main_story_data": "Main story data",
   "portal.exclude_config": "Exclude config",
-  "web.hero_title": "Preview-first story discovery for Apple Photos.",
+  "web.hero_title": "Story Discovery for Apple Photos",
   "web.hero_subtitle": "First scan your Photos Library. Then build dashboard and story outputs. Finally open the generated local portal.",
   "web.photos_cache": "Photos cache",
   "web.demo_portal": "Story Dashboard",

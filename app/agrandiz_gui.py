@@ -300,7 +300,7 @@ def run_pipeline():
 
     commands = [
         (
-            [py, "scripts/make_dashboard.py", "--db", "cache/agrandiz.sqlite", "--outdir", "cache", "--theme", "apple", "--profile", "apple_icloud", "--lang", "both"],
+            [py, "scripts/make_dashboard.py", "--db", "cache/agrandiz.sqlite", "--outdir", "cache", "--theme", "apple", "--profile", "apple_icloud"],
             "Building dashboard",
         ),
         (
@@ -326,7 +326,6 @@ def run_pipeline():
         if not ok:
             return
 
-    ensure_portal_index(ensure_project())
     log("Story discovery pipeline completed.")
     log("You can now click Open Dashboard.")
     set_status(False, "Ready")
@@ -476,75 +475,29 @@ def ensure_portal_index(project_dir):
 
 def open_portal():
     project_dir = ensure_project()
-    index = ensure_portal_index(project_dir)
-
-    if not index.exists():
-        log("Portal could not be created.")
-        return False
-
-    webbrowser.open(index.as_uri())
-    log(f"Opened portal: {index}")
-    return True
-
-
-def sqlite_has_photos_table(db_path):
-    if not db_path.exists() or db_path.stat().st_size == 0:
-        return False
-
-    try:
-        import sqlite3
-        conn = sqlite3.connect(str(db_path))
-        row = conn.execute(
-            "SELECT name FROM sqlite_master WHERE type='table' AND name='photos'"
-        ).fetchone()
-        conn.close()
-        return row is not None
-    except Exception:
-        return False
-
-
-def runtime_state():
-    project_dir = PROJECT_DIR
     cache_dir = project_dir / "cache"
 
-    db_path = cache_dir / "agrandiz.sqlite"
-    index_path = cache_dir / "index.html"
+    dashboard = cache_dir / "dashboard.apple.apple_icloud.html"
+    legacy_dashboard = cache_dir / "dashboard.en.apple.apple_icloud.html"
+    index = cache_dir / "index.html"
 
-    stories_path = cache_dir / "stories.apple.apple_icloud.html"
-    dashboard_path = cache_dir / "dashboard.apple.apple_icloud.html"
-    family_path = cache_dir / "family-timeline.apple.apple_icloud.html"
+    if dashboard.exists():
+        webbrowser.open(dashboard.as_uri())
+        log(f"Opened dashboard: {dashboard}")
+        return True
 
-    photos_cache_ready = sqlite_has_photos_table(db_path)
+    if legacy_dashboard.exists():
+        webbrowser.open(legacy_dashboard.as_uri())
+        log(f"Opened legacy dashboard: {legacy_dashboard}")
+        return True
 
-    outputs_ready = (
-        stories_path.exists()
-        or dashboard_path.exists()
-        or family_path.exists()
-        or (cache_dir / "story_candidates.json").exists()
-    )
+    if index.exists():
+        webbrowser.open(index.as_uri())
+        log(f"Opened fallback portal: {index}")
+        return True
 
-    # The index may exist as an empty shell before discovery runs.
-    # For the GUI status, "ready" should mean actual story/dashboard outputs exist.
-    portal_ready = outputs_ready
-
-    return {
-        "busy": CURRENT_STATUS["busy"],
-        "title": CURRENT_STATUS["title"],
-        "last_error": CURRENT_STATUS["last_error"],
-        "version": app_version_string(),
-        "photos_cache_ready": photos_cache_ready,
-        "portal_ready": portal_ready,
-        "outputs_ready": outputs_ready,
-        "paths": {
-            "project_dir": str(project_dir),
-            "cache_dir": str(cache_dir),
-            "db": str(db_path),
-            "index": str(index_path),
-            "stories": str(stories_path),
-            "dashboard": str(dashboard_path),
-            "family": str(family_path)
-        }
-    }
+    log("Dashboard not found. Run Generate Stories first.")
+    return False
 
 def json_response(handler, obj, status=200):
     payload = json.dumps(obj, ensure_ascii=False, indent=2).encode("utf-8")
@@ -877,7 +830,7 @@ def app_html():
 
     <header class="hero">
       <div class="brand">Agrandiz <span data-i18n="app.channel">local beta</span></div>
-      <h1 data-i18n="web.hero_title">Preview-first story discovery for Apple Photos.</h1>
+      <h1 data-i18n="web.hero_title">Story Discovery for Apple Photos</h1>
       <p data-i18n="web.hero_subtitle">
         First scan your Photos Library. Then build dashboard and story outputs. Finally open the generated local portal.
       </p>
@@ -1155,7 +1108,6 @@ def main():
 
     try:
         project_dir = ensure_project()
-        ensure_portal_index(project_dir)
     except Exception as exc:
         log(f"Project preparation error: {exc}")
         set_status(False, "Project preparation error", str(exc))
