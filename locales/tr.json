@@ -74,5 +74,6 @@
   "portal.card.dashboard.title": "Arşiv Özeti",
   "portal.card.dashboard.desc": "Apple Photos/iCloud arşivi, preview erişimi ve güçlü adaylar için lokal özet.",
   "web.cache_card_desc": "Apple Photos’tan lokal SQLite metadata cache’ini oluştur veya yenile.",
-  "web.portal_card_desc": "Dashboard, hikâye keşfi, moment galerisi ve aile zaman çizelgesi çıktılarını üret."
+  "web.portal_card_desc": "Dashboard, hikâye keşfi, moment galerisi ve aile zaman çizelgesi çıktılarını üret.",
+  "web.scan_photos": "Fotoğrafları Tara"
 }

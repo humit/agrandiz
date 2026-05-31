@@ -13,6 +13,23 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import urlparse
 
+# Shared i18n helpers live under scripts/.
+APP_FILE = Path(__file__).resolve()
+PROJECT_ROOT_FOR_IMPORTS = APP_FILE.parents[1]
+SCRIPTS_DIR_FOR_IMPORTS = PROJECT_ROOT_FOR_IMPORTS / "scripts"
+if str(SCRIPTS_DIR_FOR_IMPORTS) not in sys.path:
+    sys.path.insert(0, str(SCRIPTS_DIR_FOR_IMPORTS))
+
+try:
+    from agrandiz_i18n import i18n_js, language_switcher_html
+except Exception as exc:
+    def i18n_js(default_lang="en"):
+        return ""
+
+    def language_switcher_html():
+        return ""
+
+
 
 APP_NAME = "Agrandiz"
 PORT = 8765
@@ -132,6 +149,7 @@ def sync_project_code(src, dst):
         "scripts",
         "app",
         "themes",
+        "locales",
         "config/story_profiles",
     ]
 
@@ -319,7 +337,7 @@ def run_scan():
         log("Already busy; ignoring scan request.")
         return
 
-    log("Scan requested. This step only builds cache/agrandiz.sqlite.")
+    log("Scan requested. This step builds the local Photos metadata cache.")
     log("It will not build dashboard or story pages automatically.")
     py = app_python()
     run_command([py, "scripts/scan_to_sqlite.py"], "Scanning Photos Library")
@@ -684,6 +702,34 @@ def app_html():
       grid-column: span 3;
     }}
 
+    .status-row {{
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }}
+
+    .status-spinner {{
+      display: none;
+      width: 18px;
+      height: 18px;
+      border-radius: 999px;
+      border: 3px solid rgba(0,113,227,0.18);
+      border-top-color: var(--accent);
+      animation: agrandiz-spin .85s linear infinite;
+      flex: 0 0 auto;
+    }}
+
+    .status-spinner.is-active {{
+      display: inline-block;
+    }}
+
+    @keyframes agrandiz-spin {{
+      to {{
+        transform: rotate(360deg);
+      }}
+    }}
+
+
     .label {{
       color: var(--muted);
       font-size: 13px;
@@ -766,6 +812,23 @@ def app_html():
       overflow: auto;
     }}
 
+    .bottom-status {{
+      margin-top: 14px;
+      background: rgba(255,255,255,0.72);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 14px;
+      color: var(--muted);
+      font-size: 13px;
+    }}
+
+    .bottom-status code {{
+      display: block;
+      margin-top: 6px;
+      word-break: break-all;
+      background: #fff;
+    }}
+
     .note {{
       color: var(--muted);
       line-height: 1.5;
@@ -823,7 +886,7 @@ def app_html():
           Build or refresh the local SQLite metadata cache from Apple Photos.
         </p>
         <button class="primary card-button" id="scan" type="button">
-          <span data-i18n="web.scan_only">1. Scan Only</span>
+          <span data-i18n="web.scan_photos">Scan Photos</span>
         </button>
       </article>
 
@@ -845,7 +908,10 @@ def app_html():
 
       <article class="card status-card">
         <div class="label" data-i18n="web.current_status">Current status</div>
-        <div id="status" class="value">Loading...</div>
+        <div class="status-row">
+          <div id="statusSpinner" class="status-spinner"></div>
+          <div id="status" class="value">Loading...</div>
+        </div>
       </article>
     </section>
 
@@ -859,6 +925,11 @@ def app_html():
     </section>
 
     <textarea id="log" class="log" readonly></textarea>
+
+    <section class="bottom-status">
+      <div class="label" data-i18n="web.project_folder">Project folder</div>
+      <code>{project_dir}</code>
+    </section>
 
     <p class="note" data-i18n="web.permission_note">
       If Photos Library access fails, grant Full Disk Access:
@@ -882,23 +953,59 @@ async function refresh() {{
   const log = await getJSON("/api/log");
 
   const busy = !!status.busy;
+  const title = status.title || "";
+  const normalizedTitle = title.toLowerCase();
 
-  document.getElementById("status").textContent =
-    busy ? "Running: " + status.title : status.title;
+  const isScanning =
+    busy && (
+      normalizedTitle.includes("scanning") ||
+      normalizedTitle.includes("photos library")
+    );
+
+  const isBuilding = busy && !isScanning;
+
+  const statusText = document.getElementById("status");
+  const statusSpinner = document.getElementById("statusSpinner");
+
+  if (statusText) {{
+    if (isScanning) {{
+      statusText.textContent = "Scanning Photos...";
+    }} else if (isBuilding) {{
+      statusText.textContent = "Working...";
+    }} else {{
+      statusText.textContent = title || "Ready";
+    }}
+  }}
+
+  if (statusSpinner) {{
+    statusSpinner.classList.toggle("is-active", busy);
+  }}
 
   const photosValue = document.getElementById("photosCacheValue");
   const portalValue = document.getElementById("demoPortalValue");
 
   if (photosValue) {{
-    photosValue.textContent = status.photos_cache_ready ? "Ready" : "Not scanned yet";
-    photosValue.classList.toggle("ok", !!status.photos_cache_ready);
-    photosValue.classList.toggle("warn", !status.photos_cache_ready);
+    if (isScanning) {{
+      photosValue.textContent = "Scanning...";
+      photosValue.classList.remove("ok");
+      photosValue.classList.add("warn");
+    }} else {{
+      photosValue.textContent = status.photos_cache_ready ? "Ready" : "Not scanned yet";
+      photosValue.classList.toggle("ok", !!status.photos_cache_ready);
+      photosValue.classList.toggle("warn", !status.photos_cache_ready);
+    }}
   }}
 
   if (portalValue) {{
-    portalValue.textContent = status.portal_ready ? "Ready" : "Missing";
-    portalValue.classList.toggle("ok", !!status.portal_ready);
-    portalValue.classList.toggle("warn", !status.portal_ready);
+    if (isBuilding) {{
+      portalValue.textContent = "Working...";
+      portalValue.classList.remove("ok");
+      portalValue.classList.add("warn");
+    }} else {{
+      portalValue.textContent = status.portal_ready ? "Ready" : "Missing";
+      portalValue.classList.toggle("ok", !!status.portal_ready);
+      portalValue.classList.toggle("warn", !status.portal_ready);
+    }}
   }}
 
   const scanButton = document.getElementById("scan");
@@ -914,7 +1021,7 @@ async function refresh() {{
     buildButton.disabled = busy || !status.photos_cache_ready;
     buildButton.title = status.photos_cache_ready
       ? ""
-      : "Run Scan Only first to create the Photos cache.";
+      : "Run Scan Photos first to create the Photos cache.";
   }}
 
   if (openPortalButton) {{
