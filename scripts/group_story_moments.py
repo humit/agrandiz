@@ -734,4 +734,6 @@ def main():
 
 
 if __name__ == "__main__":
+    from agrandiz_version import print_version
+    print_version()
     main()

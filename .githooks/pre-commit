@@ -1,0 +1,34 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+VERSION_FILE="VERSION.json"
+
+if [ ! -f "$VERSION_FILE" ]; then
+  echo "VERSION.json not found; skipping version bump"
+  exit 0
+fi
+
+python3 - <<'PY'
+import json
+from pathlib import Path
+from datetime import datetime, timezone
+
+p = Path("VERSION.json")
+data = json.loads(p.read_text())
+
+major = int(data.get("major", 0))
+minor = int(data.get("minor", 1))
+patch = int(data.get("patch", 0)) + 1
+
+data["major"] = major
+data["minor"] = minor
+data["patch"] = patch
+data["version"] = f"{major}.{minor}.{patch}"
+data["updated_at"] = datetime.now(timezone.utc).isoformat(timespec="seconds")
+
+p.write_text(json.dumps(data, indent=2, ensure_ascii=False) + "\n")
+
+print(f"Agrandiz version bumped to {data['version']} {data.get('channel', '')}".strip())
+PY
+
+git add "$VERSION_FILE"

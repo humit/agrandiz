@@ -4,6 +4,16 @@ set -euo pipefail
 APP_NAME="Agrandiz"
 BUNDLE_ID="org.agrandiz.beta"
 ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
+APP_VERSION="$(python3 - <<'PYV'
+import json
+from pathlib import Path
+p = Path("VERSION.json")
+if p.exists():
+    print(json.loads(p.read_text()).get("version", "0.0.0"))
+else:
+    print("0.0.0")
+PYV
+)"
 DIST_DIR="$ROOT_DIR/dist"
 APP_DIR="$DIST_DIR/$APP_NAME.app"
 CONTENTS="$APP_DIR/Contents"
@@ -33,10 +43,10 @@ cat > "$CONTENTS/Info.plist" <<PLIST
     <string>$BUNDLE_ID</string>
 
     <key>CFBundleVersion</key>
-    <string>0.1.0</string>
+    <string>$APP_VERSION</string>
 
     <key>CFBundleShortVersionString</key>
-    <string>0.1.0</string>
+    <string>$APP_VERSION</string>
 
     <key>CFBundleExecutable</key>
     <string>agrandiz</string>

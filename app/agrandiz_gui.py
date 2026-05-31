@@ -28,6 +28,41 @@ CURRENT_STATUS = {
 }
 
 
+
+def load_app_version():
+    root = bundled_project_dir()
+    vf = root / "VERSION.json"
+
+    if not vf.exists():
+        return {
+            "name": "Agrandiz",
+            "version": "0.0.0",
+            "channel": "dev",
+            "updated_at": None,
+        }
+
+    try:
+        return json.loads(vf.read_text())
+    except Exception:
+        return {
+            "name": "Agrandiz",
+            "version": "0.0.0",
+            "channel": "unknown",
+            "updated_at": None,
+        }
+
+
+def app_version_string():
+    data = load_app_version()
+    name = data.get("name", "Agrandiz")
+    version = data.get("version", "0.0.0")
+    channel = data.get("channel", "dev")
+
+    if channel:
+        return f"{name} {version} {channel}"
+
+    return f"{name} {version}"
+
 def log(message):
     line = str(message)
     print(line, flush=True)
@@ -116,6 +151,12 @@ def sync_project_code(src, dst):
             d,
             ignore=shutil.ignore_patterns("__pycache__", "*.pyc", ".DS_Store")
         )
+
+    # Keep shared version file in sync too.
+    version_src = src / "VERSION.json"
+    version_dst = dst / "VERSION.json"
+    if version_src.exists():
+        shutil.copy2(version_src, version_dst)
 
     # Ensure required writable dirs/files exist.
     (dst / "cache").mkdir(parents=True, exist_ok=True)
@@ -451,6 +492,7 @@ def run_async(fn):
 
 
 def app_html():
+    version_label = app_version_string()
     project_dir = PROJECT_DIR
     cache_dir = project_dir / "cache"
 
@@ -653,7 +695,7 @@ def app_html():
 <body>
   <div class="shell">
     <header class="hero">
-      <div class="brand">Agrandiz <span>local beta</span></div>
+      <div class="brand">Agrandiz <span>{version_label}</span></div>
       <h1>Preview-first story discovery for Apple Photos.</h1>
       <p>
         All processing runs locally on this Mac. No upload, no deletion.
@@ -670,6 +712,11 @@ def app_html():
       <article class="card">
         <div class="label">Demo portal</div>
         <div class="value {'ok' if portal_ready else 'warn'}">{'Ready' if portal_ready else 'Not built yet'}</div>
+      </article>
+
+      <article class="card">
+        <div class="label">Version</div>
+        <div class="value">{version_label}</div>
       </article>
 
       <article class="card">
@@ -815,7 +862,7 @@ def find_free_port(start):
 
 
 def main():
-    log("Agrandiz local beta starting.")
+    log(f"{app_version_string()} starting.")
     log("No Tkinter. Web UI mode.")
     log(f"Python: {sys.executable}")
     log(f"Bundled project: {bundled_project_dir()}")
