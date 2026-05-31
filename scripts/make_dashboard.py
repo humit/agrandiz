@@ -542,13 +542,11 @@ def main():
 
     write_dashboard_data(outdir, data)
 
-    langs = ["tr", "en"] if args.lang == "both" else [args.lang]
-
-    for lang in langs:
-        html_text = render_dashboard(args.theme, lang, args.profile, data)
-        out_file = outdir / f"dashboard.{lang}.{args.theme}.{args.profile}.html"
-        out_file.write_text(html_text, encoding="utf-8")
-        print(f"Wrote {out_file}")
+    # Canonical dashboard output. UI language is handled client-side via i18n.
+    html = render_dashboard(args.theme, "en", args.profile, data)
+    out_file = outdir / f"dashboard.{args.theme}.{args.profile}.html"
+    out_file.write_text(html, encoding="utf-8")
+    print(f"Wrote {out_file}")
 
 
 if __name__ == "__main__":

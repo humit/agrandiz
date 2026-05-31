@@ -499,6 +499,63 @@ def open_portal():
     log("Dashboard not found. Run Generate Stories first.")
     return False
 
+
+def sqlite_has_photos_table(db_path):
+    if not db_path.exists() or db_path.stat().st_size == 0:
+        return False
+
+    try:
+        import sqlite3
+        conn = sqlite3.connect(str(db_path))
+        row = conn.execute(
+            "SELECT name FROM sqlite_master WHERE type='table' AND name='photos'"
+        ).fetchone()
+        conn.close()
+        return row is not None
+    except Exception:
+        return False
+
+
+def runtime_state():
+    project_dir = PROJECT_DIR
+    cache_dir = project_dir / "cache"
+
+    db_path = cache_dir / "agrandiz.sqlite"
+
+    stories_path = cache_dir / "stories.apple.apple_icloud.html"
+    dashboard_path = cache_dir / "dashboard.apple.apple_icloud.html"
+    family_path = cache_dir / "family-timeline.apple.apple_icloud.html"
+    story_json_path = cache_dir / "story_candidates.json"
+
+    photos_cache_ready = sqlite_has_photos_table(db_path)
+
+    outputs_ready = (
+        dashboard_path.exists()
+        or stories_path.exists()
+        or family_path.exists()
+        or story_json_path.exists()
+    )
+
+    return {
+        "busy": CURRENT_STATUS["busy"],
+        "title": CURRENT_STATUS["title"],
+        "last_error": CURRENT_STATUS["last_error"],
+        "version": app_version_string(),
+        "photos_cache_ready": photos_cache_ready,
+        "portal_ready": outputs_ready,
+        "outputs_ready": outputs_ready,
+        "paths": {
+            "project_dir": str(project_dir),
+            "cache_dir": str(cache_dir),
+            "db": str(db_path),
+            "dashboard": str(dashboard_path),
+            "stories": str(stories_path),
+            "family": str(family_path),
+            "story_json": str(story_json_path)
+        }
+    }
+
+
 def json_response(handler, obj, status=200):
     payload = json.dumps(obj, ensure_ascii=False, indent=2).encode("utf-8")
     handler.send_response(status)
