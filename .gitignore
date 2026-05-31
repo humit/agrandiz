@@ -3,6 +3,8 @@
 __pycache__/
 *.py[cod]
 *$py.class
+.venv/
+venv/
 
 # Build artifacts
 dist/
@@ -12,5 +14,14 @@ build/
 # macOS
 .DS_Store
 
-# Agrandiz generated local outputs
+# Agrandiz generated data
 cache/
+*.sqlite
+*.db
+thumbs/
+
+*.app/
+
+# Logs / temp
+*.log
+tmp/
