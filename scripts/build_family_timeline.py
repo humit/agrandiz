@@ -470,7 +470,7 @@ def select_year_moments(moments, config):
 
 
 def build_timeline(rows, config, thumbs_dir):
-    use_phash = Image is not None and imagehash is not None
+    use_phash = Image is not None and imagehash is not None and not config.get("disable_phash", False)
 
     items = []
 
@@ -481,6 +481,10 @@ def build_timeline(rows, config, thumbs_dir):
         item = build_item(row, thumbs_dir, use_phash)
         if item:
             items.append(item)
+
+        max_candidates = config.get("max_candidates")
+        if max_candidates and len(items) >= int(max_candidates):
+            break
 
     moments = cluster_items(items, config)
     by_year = select_year_moments(moments, config)
@@ -881,6 +885,10 @@ def main():
     parser.add_argument("--config", default="config/family_timeline.json")
     parser.add_argument("--outdir", default="cache")
     parser.add_argument("--lang", default="both", choices=["tr", "en", "both"])
+    parser.add_argument("--fast", action="store_true", help="Use faster beta/test settings")
+    parser.add_argument("--max-candidates", type=int, default=None, help="Limit matched candidate photos")
+    parser.add_argument("--max-total-moments", type=int, default=None, help="Limit selected timeline moments")
+    parser.add_argument("--no-phash", action="store_true", help="Disable perceptual hash computation")
     args = parser.parse_args()
 
     outdir = Path(args.outdir)
@@ -889,6 +897,21 @@ def main():
     thumbs_dir.mkdir(parents=True, exist_ok=True)
 
     config = load_config(args.config)
+
+    if args.fast:
+        config["disable_phash"] = True
+        config["max_candidates"] = min(int(config.get("max_candidates", 700)), 700)
+        config["max_total_moments"] = min(int(config.get("max_total_moments", 60)), 60)
+        config["max_moments_per_year"] = min(int(config.get("max_moments_per_year", 8)), 8)
+
+    if args.no_phash:
+        config["disable_phash"] = True
+
+    if args.max_candidates is not None:
+        config["max_candidates"] = args.max_candidates
+
+    if args.max_total_moments is not None:
+        config["max_total_moments"] = args.max_total_moments
 
     conn = sqlite3.connect(args.db)
     conn.row_factory = sqlite3.Row
