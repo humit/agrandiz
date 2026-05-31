@@ -5,6 +5,7 @@ import html
 import json
 from pathlib import Path
 from datetime import datetime
+from agrandiz_i18n import i18n_js, language_switcher_html
 
 
 def esc(value):
@@ -335,15 +336,15 @@ def render_page(data, lang):
         panel_desc = "Exclude butonuna bastığında kart hemen gizlenir ve aşağıdaki JSON güncellenir. Kalıcı yapmak için JSON’u config/excludes.json dosyasına yapıştırıp sayfayı yeniden üret."
     else:
         title = "agrandiz story discovery"
-        hero = "Curatable moment gallery"
-        subtitle = "Full-image thumbnails, fast exclude flow and hover/touch micro-sequences for more usable story candidates."
+        hero = '<span data-i18n="stories.hero_title">Curatable moment gallery</span>'
+        subtitle = '<span data-i18n="stories.hero_subtitle">Full-image thumbnails, fast exclude flow and hover/touch micro-sequences for more usable story candidates.</span>'
         candidates_label = "story candidates"
         moments_label = "selected moments"
         grouped_label = "grouped variants"
         excluded_label = "active exclude rules"
-        copy_label = "Copy exclude JSON"
-        reset_label = "Clear temporary exclude list in this browser"
-        panel_title = "Curation tools"
+        copy_label = '<span data-i18n="stories.copy_exclude_json">Copy exclude JSON</span>'
+        reset_label = '<span data-i18n="stories.clear_excludes">Clear temporary exclude list in this browser</span>'
+        panel_title = '<span data-i18n="stories.curation_tools">Curation tools</span>'
         panel_desc = "When you click Exclude, the card is hidden immediately and the JSON below is updated. To make it persistent, paste the JSON into config/excludes.json and regenerate."
 
     stories = data.get("stories", [])
@@ -676,6 +677,7 @@ def render_page(data, lang):
   <div class="shell">
     <header class="hero">
       <div class="brand">agrandiz <span>story discovery</span></div>
+      {language_switcher_html()}
       <div class="hero-copy">
         <h1>{esc(hero)}</h1>
         <p>{esc(subtitle)}</p>
@@ -891,6 +893,7 @@ def render_page(data, lang):
     setupMicroSequences();
     applyHiddenCards();
   </script>
+{i18n_js()}
 </body>
 </html>
 """
@@ -952,7 +955,7 @@ def main():
 
     for lang in langs:
         html_text = render_page(data, lang)
-        html_path = outdir / f"stories.{lang}.apple.apple_icloud.html"
+        html_path = outdir / "stories.apple.apple_icloud.html"
         html_path.write_text(html_text, encoding="utf-8")
         print(f"Wrote {html_path}")
 

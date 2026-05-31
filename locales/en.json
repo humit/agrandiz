@@ -1,11 +1,9 @@
 {
   "app.name": "Agrandiz",
   "app.channel": "local beta",
-
   "language.label": "Language",
   "language.en": "English",
   "language.tr": "Turkish",
-
   "common.preview_ready": "Preview ready",
   "common.original_local": "Original local",
   "common.original_icloud": "Original in iCloud",
@@ -22,7 +20,6 @@
   "common.source_items": "source items",
   "common.grouped_variants": "grouped variants",
   "common.excluded_moments": "excluded moments",
-
   "portal.title": "From Photos Library to visible stories.",
   "portal.subtitle": "This local demo reads the Agrandiz SQLite cache generated from Apple Photos, then renders dashboards and story discovery galleries. No iCloud account connection, no upload, no deletion.",
   "portal.mode": "local demo",
@@ -34,7 +31,6 @@
   "portal.output_folder": "Output folder",
   "portal.main_story_data": "Main story data",
   "portal.exclude_config": "Exclude config",
-
   "web.hero_title": "Preview-first story discovery for Apple Photos.",
   "web.hero_subtitle": "First scan your Photos Library. Then build dashboard and story outputs. Finally open the generated local portal.",
   "web.photos_cache": "Photos cache",
@@ -49,7 +45,6 @@
   "web.open_portal": "3. Open Portal",
   "web.open_output_folder": "Open Output Folder",
   "web.permission_note": "If Photos Library access fails, grant Full Disk Access: System Settings → Privacy & Security → Full Disk Access → Agrandiz",
-
   "stories.page_title": "Agrandiz story discovery",
   "stories.hero_title": "Curatable moment gallery",
   "stories.hero_subtitle": "Full-image thumbnails, fast exclude flow and hover/touch micro-sequences for more usable story candidates.",
@@ -60,13 +55,24 @@
   "stories.curation_desc": "When you click Exclude, the card is hidden immediately and the JSON below is updated. To make it persistent, paste the JSON into config/excludes.json and regenerate.",
   "stories.copy_exclude_json": "Copy exclude JSON",
   "stories.clear_excludes": "Clear temporary exclude list in this browser",
-
   "family.page_title": "Children's Growing-Up Story",
   "family.subtitle": "A timeline built from child, family, birthday, school, play and everyday-life memories in the Photos/iCloud archive.",
-  "family.timeline": "family timeline",
+  "family.timeline": "Family timeline",
   "family.candidate_photos": "candidate photos",
   "family.selected_moments": "selected moments",
   "family.grouped_variants": "grouped variants",
   "family.years": "years",
-  "family.note": "This page was generated from the preview cache without downloading originals."
+  "family.note": "This page was generated from the preview cache without downloading originals.",
+  "portal.developer_artifacts": "Developer artifacts",
+  "portal.card.stories.eyebrow": "Story Discovery",
+  "portal.card.stories.title": "Curatable Moment Gallery",
+  "portal.card.stories.desc": "Full-image thumbnails, exclude controls and hover micro-sequences for story candidates.",
+  "portal.card.family.eyebrow": "Family Timeline",
+  "portal.card.family.title": "Children's Growing-Up Story",
+  "portal.card.family.desc": "A year-by-year timeline from child, family, birthday, school and everyday-life memories.",
+  "portal.card.dashboard.eyebrow": "Dashboard",
+  "portal.card.dashboard.title": "Archive Overview",
+  "portal.card.dashboard.desc": "A local summary of the Apple Photos/iCloud archive, preview availability and strong candidates.",
+  "web.cache_card_desc": "Build or refresh the local SQLite metadata cache from Apple Photos.",
+  "web.portal_card_desc": "Build dashboard, story discovery, moment gallery, and family timeline outputs."
 }

@@ -1,11 +1,9 @@
 {
   "app.name": "Agrandiz",
   "app.channel": "lokal beta",
-
   "language.label": "Dil",
   "language.en": "İngilizce",
   "language.tr": "Türkçe",
-
   "common.preview_ready": "Preview hazır",
   "common.original_local": "Orijinal lokal",
   "common.original_icloud": "Orijinal iCloud’da",
@@ -22,7 +20,6 @@
   "common.source_items": "kaynak kare",
   "common.grouped_variants": "gruplanan varyant",
   "common.excluded_moments": "exclude edilen moment",
-
   "portal.title": "Photos Library’den görünür hikâyelere.",
   "portal.subtitle": "Bu lokal demo Apple Photos’tan üretilen Agrandiz SQLite cache’ini okur, dashboard ve hikâye keşif galerileri üretir. iCloud hesabı bağlantısı yok, upload yok, silme yok.",
   "portal.mode": "lokal demo",
@@ -34,7 +31,6 @@
   "portal.output_folder": "Çıktı klasörü",
   "portal.main_story_data": "Ana hikâye verisi",
   "portal.exclude_config": "Exclude ayarı",
-
   "web.hero_title": "Apple Photos için preview-first hikâye keşfi.",
   "web.hero_subtitle": "Önce Photos Library taranır. Sonra dashboard ve hikâye çıktıları üretilir. Ardından lokal portal açılır.",
   "web.photos_cache": "Photos cache",
@@ -49,7 +45,6 @@
   "web.open_portal": "3. Portalı Aç",
   "web.open_output_folder": "Çıktı Klasörünü Aç",
   "web.permission_note": "Photos Library erişimi başarısız olursa Full Disk Access verin: System Settings → Privacy & Security → Full Disk Access → Agrandiz",
-
   "stories.page_title": "Agrandiz hikâye keşfi",
   "stories.hero_title": "Kürasyon kontrollü moment galerisi",
   "stories.hero_subtitle": "Tam görünen thumbnail’ler, hızlı exclude akışı ve hover/touch micro-sequence ile daha kullanılabilir hikâye adayları.",
@@ -60,13 +55,24 @@
   "stories.curation_desc": "Exclude butonuna bastığında kart hemen gizlenir ve aşağıdaki JSON güncellenir. Kalıcı yapmak için JSON’u config/excludes.json dosyasına yapıştırıp sayfayı yeniden üret.",
   "stories.copy_exclude_json": "Exclude JSON’u kopyala",
   "stories.clear_excludes": "Bu tarayıcıdaki geçici exclude listesini temizle",
-
   "family.page_title": "Çocukların Büyüme Hikâyesi",
   "family.subtitle": "Photos/iCloud arşivindeki çocuk, aile, doğum günü, okul, oyun ve gündelik hayat anılarından oluşturulan zaman çizelgesi.",
-  "family.timeline": "aile zaman çizelgesi",
+  "family.timeline": "Aile zaman çizelgesi",
   "family.candidate_photos": "aday fotoğraf",
   "family.selected_moments": "seçili moment",
   "family.grouped_variants": "gruplanan varyant",
   "family.years": "yıl",
-  "family.note": "Bu sayfa orijinalleri indirmeden, mevcut preview cache üzerinden oluşturuldu."
+  "family.note": "Bu sayfa orijinalleri indirmeden, mevcut preview cache üzerinden oluşturuldu.",
+  "portal.developer_artifacts": "Geliştirici çıktıları",
+  "portal.card.stories.eyebrow": "Hikâye Keşfi",
+  "portal.card.stories.title": "Kürasyon Kontrollü Moment Galerisi",
+  "portal.card.stories.desc": "Hikâye adayları için tam görünen fotoğraflar, exclude kontrolleri ve hover micro-sequence.",
+  "portal.card.family.eyebrow": "Aile Zaman Çizelgesi",
+  "portal.card.family.title": "Çocukların Büyüme Hikâyesi",
+  "portal.card.family.desc": "Çocuk, aile, doğum günü, okul ve gündelik hayat anılarından yıllara yayılan zaman çizelgesi.",
+  "portal.card.dashboard.eyebrow": "Dashboard",
+  "portal.card.dashboard.title": "Arşiv Özeti",
+  "portal.card.dashboard.desc": "Apple Photos/iCloud arşivi, preview erişimi ve güçlü adaylar için lokal özet.",
+  "web.cache_card_desc": "Apple Photos’tan lokal SQLite metadata cache’ini oluştur veya yenile.",
+  "web.portal_card_desc": "Dashboard, hikâye keşfi, moment galerisi ve aile zaman çizelgesi çıktılarını üret."
 }
