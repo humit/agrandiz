@@ -5,7 +5,6 @@ import sqlite3
 from pathlib import Path
 from datetime import datetime
 
-import osxphotos
 
 
 DB_PATH = Path("cache/agrandiz.sqlite")
@@ -281,10 +280,18 @@ def insert_photo(conn, p):
 def main():
     DB_PATH.parent.mkdir(parents=True, exist_ok=True)
 
-    print("Loading Photos library...")
+    print("Starting Photos Library scan...", flush=True)
+    print("Loading osxphotos module...", flush=True)
+
+    import osxphotos
+
+    print("Opening Photos library database...", flush=True)
     photosdb = osxphotos.PhotosDB()
+
+    print("Reading Photos assets. This may take a little while on first run...", flush=True)
     photos = photosdb.photos()
-    print(f"Found {len(photos)} assets")
+
+    print(f"Found {len(photos)} assets", flush=True)
 
     conn = sqlite3.connect(DB_PATH)
     create_schema(conn)

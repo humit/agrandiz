@@ -77,6 +77,58 @@ def app_python():
     return sys.executable
 
 
+def sync_project_code(src, dst):
+    """
+    Keep bundled code up to date without destroying user-generated cache
+    or user curation files.
+
+    Preserved:
+      - cache/
+      - config/excludes.json
+
+    Synced:
+      - scripts/
+      - app/
+      - themes/
+      - config/story_profiles/
+      - requirements / static files at repo root when needed later
+    """
+    sync_dirs = [
+        "scripts",
+        "app",
+        "themes",
+        "config/story_profiles",
+    ]
+
+    for rel in sync_dirs:
+        s = src / rel
+        d = dst / rel
+
+        if not s.exists():
+            continue
+
+        if d.exists():
+            shutil.rmtree(d)
+
+        d.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copytree(
+            s,
+            d,
+            ignore=shutil.ignore_patterns("__pycache__", "*.pyc", ".DS_Store")
+        )
+
+    # Ensure required writable dirs/files exist.
+    (dst / "cache").mkdir(parents=True, exist_ok=True)
+    (dst / "config").mkdir(parents=True, exist_ok=True)
+
+    excludes = dst / "config" / "excludes.json"
+    if not excludes.exists():
+        excludes.write_text(
+            '{\n  "uuids": [],\n  "phashes": [],\n  "filenames": [],\n  "captions": []\n}\n',
+            encoding="utf-8"
+        )
+
+
 def copy_project_if_needed():
     src = bundled_project_dir()
     dst = PROJECT_DIR
@@ -87,6 +139,8 @@ def copy_project_if_needed():
 
     if marker.exists():
         log(f"Using existing project data: {dst}")
+        log("Syncing bundled app code while preserving cache and excludes...")
+        sync_project_code(src, dst)
         return dst
 
     if dst.exists():
@@ -107,36 +161,41 @@ def copy_project_if_needed():
     )
 
     shutil.copytree(src, dst, ignore=ignore)
-
-    (dst / "cache").mkdir(parents=True, exist_ok=True)
-    (dst / "config").mkdir(parents=True, exist_ok=True)
-
-    excludes = dst / "config" / "excludes.json"
-    if not excludes.exists():
-        excludes.write_text(
-            '{\n  "uuids": [],\n  "phashes": [],\n  "filenames": [],\n  "captions": []\n}\n',
-            encoding="utf-8"
-        )
+    sync_project_code(src, dst)
 
     marker.write_text("ok\n", encoding="utf-8")
     log(f"Project prepared: {dst}")
 
     return dst
 
-
 def ensure_project():
     return copy_project_if_needed()
 
 
+def make_unbuffered(args):
+    """
+    Ensure child Python output is visible as early as possible.
+    """
+    if len(args) >= 2 and args[0].endswith("/python") and args[1] != "-u":
+        return [args[0], "-u"] + args[1:]
+    return args
+
+
 def run_command(args, title):
     project_dir = ensure_project()
+    args = make_unbuffered(args)
 
     set_status(True, title)
     log("")
     log(f"== {title} ==")
+    log("Starting now. If Photos Library is large, the first visible output may take a little while.")
+    log("No upload. No deletion. Local processing only.")
     log(" ".join(args))
 
     try:
+        env = os.environ.copy()
+        env["PYTHONUNBUFFERED"] = "1"
+
         process = subprocess.Popen(
             args,
             cwd=str(project_dir),
@@ -144,7 +203,7 @@ def run_command(args, title):
             stderr=subprocess.STDOUT,
             text=True,
             bufsize=1,
-            env=os.environ.copy(),
+            env=env,
         )
 
         assert process.stdout is not None
@@ -175,6 +234,8 @@ def run_pipeline():
     if CURRENT_STATUS["busy"]:
         log("Already busy; ignoring new pipeline request.")
         return
+
+    log("Build requested. This step creates dashboard, story candidates, moment grouping and v4 gallery.")
 
     py = app_python()
 
@@ -211,6 +272,8 @@ def run_scan():
         log("Already busy; ignoring scan request.")
         return
 
+    log("Scan requested. This step only builds cache/agrandiz.sqlite.")
+    log("It will not build dashboard or story pages automatically.")
     py = app_python()
     run_command([py, "scripts/scan_to_sqlite.py"], "Scanning Photos Library")
 
@@ -220,6 +283,130 @@ def open_output_folder():
     output = project_dir / "cache"
     output.mkdir(parents=True, exist_ok=True)
     subprocess.run(["open", str(output)])
+
+
+
+def ensure_portal_index(project_dir):
+    cache_dir = project_dir / "cache"
+    cache_dir.mkdir(parents=True, exist_ok=True)
+
+    index = cache_dir / "index.html"
+
+    files = {
+        "stories_tr": cache_dir / "stories-v4.tr.apple.apple_icloud.html",
+        "stories_en": cache_dir / "stories-v4.en.apple.apple_icloud.html",
+        "dashboard_tr": cache_dir / "dashboard.tr.apple.apple_icloud.html",
+        "dashboard_en": cache_dir / "dashboard.en.apple.apple_icloud.html",
+        "story_json": cache_dir / "story_candidates_v4.json",
+    }
+
+    def ready(name):
+        return files[name].exists()
+
+    def card(href, eyebrow, title, desc, enabled):
+        cls = "portal-card" if enabled else "portal-card disabled"
+        if enabled:
+            tag_start = f'<a class="{cls}" href="{href}">'
+            tag_end = '</a>'
+        else:
+            tag_start = f'<div class="{cls}">'
+            tag_end = '</div>'
+
+        return "\n".join([
+            tag_start,
+            f'  <div class="eyebrow">{eyebrow}</div>',
+            f'  <h2>{title}</h2>',
+            f'  <p>{desc}</p>',
+            tag_end,
+        ])
+
+    cards = [
+        card(
+            "stories-v4.tr.apple.apple_icloud.html",
+            "Türkçe · Story Discovery v4",
+            "Kürasyon Kontrollü Moment Galerisi",
+            "Tam görünen fotoğraflar, exclude butonları ve hover micro-sequence ile gelişmiş hikâye adayları.",
+            ready("stories_tr"),
+        ),
+        card(
+            "stories-v4.en.apple.apple_icloud.html",
+            "English · Story Discovery v4",
+            "Curatable Moment Gallery",
+            "Full-image thumbnails, exclude buttons and hover micro-sequences for story candidates.",
+            ready("stories_en"),
+        ),
+        card(
+            "dashboard.tr.apple.apple_icloud.html",
+            "Türkçe · Dashboard",
+            "agrandiz Dashboard",
+            "Mac + Photos/iCloud arşivinizden keşfedilen özet, hikâye adayları ve güçlü kareler.",
+            ready("dashboard_tr"),
+        ),
+        card(
+            "dashboard.en.apple.apple_icloud.html",
+            "English · Dashboard",
+            "agrandiz Dashboard",
+            "Summary, story candidates and strong image candidates from a Mac + Photos/iCloud archive.",
+            ready("dashboard_en"),
+        ),
+    ]
+
+    html = "\n".join([
+        "<!doctype html>",
+        '<html lang="en">',
+        "<head>",
+        '  <meta charset="utf-8">',
+        '  <meta name="viewport" content="width=device-width,initial-scale=1">',
+        "  <title>agrandiz demo portal</title>",
+        '  <link rel="stylesheet" href="../themes/apple.css">',
+        "  <style>",
+        "    .portal-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; margin-top: 28px; }",
+        "    .portal-card { display: block; text-decoration: none; color: inherit; background: rgba(255,255,255,0.78); border: 1px solid rgba(0,0,0,0.08); border-radius: 28px; padding: 24px; box-shadow: 0 10px 30px rgba(0,0,0,0.08); }",
+        "    .portal-card.disabled { opacity: .45; pointer-events: none; }",
+        "    .portal-card .eyebrow { color: #0071e3; font-size: 13px; font-weight: 700; margin-bottom: 10px; }",
+        "    .portal-card h2 { margin: 0 0 8px; font-size: 26px; letter-spacing: -0.03em; }",
+        "    .portal-card p { margin: 0; color: #6e6e73; line-height: 1.45; }",
+        "    .status-grid { margin-top: 28px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }",
+        "    .status-card { background: rgba(255,255,255,0.78); border: 1px solid rgba(0,0,0,0.08); border-radius: 24px; padding: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.08); }",
+        "    .status-card .label { color: #6e6e73; font-size: 13px; margin-bottom: 8px; }",
+        "    .status-card .value { font-size: 24px; font-weight: 750; letter-spacing: -0.03em; }",
+        "    .dev-panel { margin-top: 32px; background: rgba(255,255,255,0.78); border: 1px solid rgba(0,0,0,0.08); border-radius: 24px; padding: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.08); }",
+        "    code { background: #f3f4f6; border-radius: 8px; padding: 2px 6px; font-size: 13px; }",
+        "    @media (max-width: 900px) { .portal-actions, .status-grid { grid-template-columns: 1fr; } }",
+        "  </style>",
+        "</head>",
+        '<body class="theme-apple profile-apple_icloud">',
+        '  <div class="shell">',
+        '    <header class="hero">',
+        '      <div class="brand">agrandiz <span>demo portal</span></div>',
+        '      <div class="hero-copy">',
+        "        <h1>From Photos Library to visible stories.</h1>",
+        "        <p>This local demo reads the agrandiz SQLite cache generated from Apple Photos, then renders dashboards and story discovery galleries. No iCloud account connection, no upload, no deletion.</p>",
+        '        <div class="meta-line">Theme: <strong>apple</strong> · Source profile: <strong>apple_icloud</strong> · Mode: <strong>local demo</strong></div>',
+        "      </div>",
+        "    </header>",
+        '    <section class="portal-actions">',
+        *cards,
+        "    </section>",
+        '    <section class="status-grid">',
+        '      <article class="status-card"><div class="label">Story gallery</div><div class="value">' + ("Ready" if ready("stories_tr") else "Missing") + "</div></article>",
+        '      <article class="status-card"><div class="label">Dashboard</div><div class="value">' + ("Ready" if ready("dashboard_tr") else "Missing") + "</div></article>",
+        '      <article class="status-card"><div class="label">Story JSON</div><div class="value">' + ("Ready" if ready("story_json") else "Missing") + "</div></article>",
+        "    </section>",
+        '    <section class="dev-panel">',
+        "      <h2>Developer artifacts</h2>",
+        "      <p>Output folder: <code>" + str(cache_dir) + "</code></p>",
+        "      <p>Main story data: <code>cache/story_candidates_v4.json</code></p>",
+        "      <p>Exclude config: <code>config/excludes.json</code></p>",
+        "    </section>",
+        "  </div>",
+        "</body>",
+        "</html>",
+    ])
+
+    index.write_text(html, encoding="utf-8")
+    log(f"Portal index ready: {index}")
+    return index
 
 
 def open_portal():
@@ -464,7 +651,7 @@ def app_html():
       <h1>Preview-first story discovery for Apple Photos.</h1>
       <p>
         All processing runs locally on this Mac. No upload, no deletion.
-        Scan your Photos Library, build story candidates, then open the generated local portal.
+        First scan your Photos Library. Then build dashboard and story outputs. Finally open the generated local portal.
       </p>
     </header>
 
@@ -491,9 +678,9 @@ def app_html():
     </section>
 
     <section class="actions">
-      <button class="primary" id="scan">1. Scan Photos Library</button>
-      <button class="primary" id="build">2. Build Story Discovery</button>
-      <button id="openPortal">3. Open Demo Portal</button>
+      <button class="primary" id="scan">1. Scan Only</button>
+      <button class="primary" id="build">2. Build Outputs</button>
+      <button id="openPortal">3. Open Portal</button>
       <button id="openFolder">Open Output Folder</button>
     </section>
 
