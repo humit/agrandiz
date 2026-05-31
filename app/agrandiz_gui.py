@@ -468,6 +468,62 @@ def open_portal():
     log(f"Opened portal: {index}")
     return True
 
+
+def sqlite_has_photos_table(db_path):
+    if not db_path.exists() or db_path.stat().st_size == 0:
+        return False
+
+    try:
+        import sqlite3
+        conn = sqlite3.connect(str(db_path))
+        row = conn.execute(
+            "SELECT name FROM sqlite_master WHERE type='table' AND name='photos'"
+        ).fetchone()
+        conn.close()
+        return row is not None
+    except Exception:
+        return False
+
+
+def runtime_state():
+    project_dir = PROJECT_DIR
+    cache_dir = project_dir / "cache"
+
+    db_path = cache_dir / "agrandiz.sqlite"
+    index_path = cache_dir / "index.html"
+
+    stories_path = cache_dir / "stories.apple.apple_icloud.html"
+    dashboard_path = cache_dir / "dashboard.apple.apple_icloud.html"
+    family_path = cache_dir / "family-timeline.apple.apple_icloud.html"
+
+    photos_cache_ready = sqlite_has_photos_table(db_path)
+    portal_ready = index_path.exists()
+
+    outputs_ready = (
+        stories_path.exists()
+        or dashboard_path.exists()
+        or family_path.exists()
+    )
+
+    return {
+        "busy": CURRENT_STATUS["busy"],
+        "title": CURRENT_STATUS["title"],
+        "last_error": CURRENT_STATUS["last_error"],
+        "version": app_version_string(),
+        "photos_cache_ready": photos_cache_ready,
+        "portal_ready": portal_ready,
+        "outputs_ready": outputs_ready,
+        "paths": {
+            "project_dir": str(project_dir),
+            "cache_dir": str(cache_dir),
+            "db": str(db_path),
+            "index": str(index_path),
+            "stories": str(stories_path),
+            "dashboard": str(dashboard_path),
+            "family": str(family_path)
+        }
+    }
+
 def json_response(handler, obj, status=200):
     payload = json.dumps(obj, ensure_ascii=False, indent=2).encode("utf-8")
     handler.send_response(status)
@@ -494,13 +550,6 @@ def run_async(fn):
 def app_html():
     version_label = app_version_string()
     project_dir = PROJECT_DIR
-    cache_dir = project_dir / "cache"
-
-    dashboard_tr = cache_dir / "dashboard.tr.apple.apple_icloud.html"
-    stories_tr = cache_dir / "stories.tr.apple.apple_icloud.html"
-
-    portal_ready = (cache_dir / "index.html").exists()
-    scan_ready = (cache_dir / "agrandiz.sqlite").exists()
 
     return f"""<!doctype html>
 <html lang="en">
@@ -537,6 +586,38 @@ def app_html():
       max-width: 1120px;
       margin: 0 auto;
       padding: 36px 22px 72px;
+    }}
+
+    .topbar {{
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 18px;
+    }}
+
+    .version-pill {{
+      font-size: 13px;
+      padding: 7px 10px;
+      border-radius: 999px;
+      background: rgba(0,113,227,0.10);
+      color: var(--accent);
+      font-weight: 700;
+    }}
+
+    .language-switcher {{
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      color: var(--muted);
+    }}
+
+    .language-switcher select {{
+      border: 1px solid rgba(0,0,0,0.10);
+      border-radius: 999px;
+      padding: 6px 10px;
+      background: #fff;
     }}
 
     .hero {{
@@ -592,6 +673,13 @@ def app_html():
       box-shadow: var(--shadow);
     }}
 
+    .action-card {{
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      min-height: 205px;
+    }}
+
     .status-card {{
       grid-column: span 3;
     }}
@@ -616,11 +704,12 @@ def app_html():
       color: var(--danger);
     }}
 
-    .actions {{
-      display: grid;
-      grid-template-columns: repeat(4, minmax(0, 1fr));
-      gap: 12px;
-      margin: 20px 0;
+    .card-note {{
+      color: var(--muted);
+      line-height: 1.4;
+      margin: 0;
+      font-size: 14px;
+      flex: 1;
     }}
 
     button, a.button {{
@@ -648,6 +737,18 @@ def app_html():
     button:disabled {{
       opacity: .55;
       cursor: not-allowed;
+    }}
+
+    .card-button {{
+      width: 100%;
+      margin-top: 6px;
+    }}
+
+    .actions {{
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+      margin: 20px 0;
     }}
 
     .log {{
@@ -683,9 +784,16 @@ def app_html():
       .grid, .actions {{
         grid-template-columns: 1fr;
       }}
+
       .status-card {{
         grid-column: span 1;
       }}
+
+      .topbar {{
+        flex-direction: column;
+        align-items: flex-start;
+      }}
+
       h1 {{
         font-size: 34px;
       }}
@@ -694,54 +802,67 @@ def app_html():
 </head>
 <body>
   <div class="shell">
+    <div class="topbar">
+      <div class="version-pill">{version_label}</div>
+      {language_switcher_html()}
+    </div>
+
     <header class="hero">
-      <div class="brand">Agrandiz <span>{version_label}</span></div>
-      <h1>Preview-first story discovery for Apple Photos.</h1>
-      <p>
-        All processing runs locally on this Mac. No upload, no deletion.
+      <div class="brand">Agrandiz <span data-i18n="app.channel">local beta</span></div>
+      <h1 data-i18n="web.hero_title">Preview-first story discovery for Apple Photos.</h1>
+      <p data-i18n="web.hero_subtitle">
         First scan your Photos Library. Then build dashboard and story outputs. Finally open the generated local portal.
       </p>
     </header>
 
     <section class="grid">
-      <article class="card">
-        <div class="label">Photos cache</div>
-        <div class="value {'ok' if scan_ready else 'warn'}">{'Ready' if scan_ready else 'Not scanned yet'}</div>
+      <article class="card action-card" id="photosCacheCard">
+        <div class="label" data-i18n="web.photos_cache">Photos cache</div>
+        <div id="photosCacheValue" class="value warn">Checking...</div>
+        <p class="card-note" data-i18n="web.cache_card_desc">
+          Build or refresh the local SQLite metadata cache from Apple Photos.
+        </p>
+        <button class="primary card-button" id="scan" type="button">
+          <span data-i18n="web.scan_only">1. Scan Only</span>
+        </button>
+      </article>
+
+      <article class="card action-card" id="demoPortalCard">
+        <div class="label" data-i18n="web.demo_portal">Demo portal</div>
+        <div id="demoPortalValue" class="value warn">Checking...</div>
+        <p class="card-note" data-i18n="web.portal_card_desc">
+          Build dashboard, story discovery, moment gallery, and family timeline outputs.
+        </p>
+        <button class="primary card-button" id="build" type="button">
+          <span data-i18n="web.build_outputs">2. Build Outputs</span>
+        </button>
       </article>
 
       <article class="card">
-        <div class="label">Demo portal</div>
-        <div class="value {'ok' if portal_ready else 'warn'}">{'Ready' if portal_ready else 'Not built yet'}</div>
-      </article>
-
-      <article class="card">
-        <div class="label">Version</div>
-        <div class="value">{version_label}</div>
-      </article>
-
-      <article class="card">
-        <div class="label">Project folder</div>
+        <div class="label" data-i18n="web.project_folder">Project folder</div>
         <div class="value" style="font-size: 13px; word-break: break-all;">{project_dir}</div>
       </article>
 
       <article class="card status-card">
-        <div class="label">Current status</div>
+        <div class="label" data-i18n="web.current_status">Current status</div>
         <div id="status" class="value">Loading...</div>
       </article>
     </section>
 
     <section class="actions">
-      <button class="primary" id="scan">1. Scan Only</button>
-      <button class="primary" id="build">2. Build Outputs</button>
-      <button id="openPortal">3. Open Portal</button>
-      <button id="openFolder">Open Output Folder</button>
+      <button id="openPortal" type="button">
+        <span data-i18n="web.open_portal">3. Open Portal</span>
+      </button>
+      <button id="openFolder" type="button">
+        <span data-i18n="web.open_output_folder">Open Output Folder</span>
+      </button>
     </section>
 
     <textarea id="log" class="log" readonly></textarea>
 
-    <p class="note">
+    <p class="note" data-i18n="web.permission_note">
       If Photos Library access fails, grant Full Disk Access:
-      <code>System Settings → Privacy & Security → Full Disk Access → Agrandiz</code>
+      System Settings → Privacy & Security → Full Disk Access → Agrandiz
     </p>
   </div>
 
@@ -760,20 +881,62 @@ async function refresh() {{
   const status = await getJSON("/api/status");
   const log = await getJSON("/api/log");
 
-  document.getElementById("status").textContent =
-    status.busy ? "Running: " + status.title : status.title;
+  const busy = !!status.busy;
 
-  const buttons = document.querySelectorAll("button");
-  buttons.forEach(b => {{
-    if (["openPortal", "openFolder"].includes(b.id)) return;
-    b.disabled = status.busy;
-  }});
+  document.getElementById("status").textContent =
+    busy ? "Running: " + status.title : status.title;
+
+  const photosValue = document.getElementById("photosCacheValue");
+  const portalValue = document.getElementById("demoPortalValue");
+
+  if (photosValue) {{
+    photosValue.textContent = status.photos_cache_ready ? "Ready" : "Not scanned yet";
+    photosValue.classList.toggle("ok", !!status.photos_cache_ready);
+    photosValue.classList.toggle("warn", !status.photos_cache_ready);
+  }}
+
+  if (portalValue) {{
+    portalValue.textContent = status.portal_ready ? "Ready" : "Missing";
+    portalValue.classList.toggle("ok", !!status.portal_ready);
+    portalValue.classList.toggle("warn", !status.portal_ready);
+  }}
+
+  const scanButton = document.getElementById("scan");
+  const buildButton = document.getElementById("build");
+  const openPortalButton = document.getElementById("openPortal");
+  const openFolderButton = document.getElementById("openFolder");
+
+  if (scanButton) {{
+    scanButton.disabled = busy;
+  }}
+
+  if (buildButton) {{
+    buildButton.disabled = busy || !status.photos_cache_ready;
+    buildButton.title = status.photos_cache_ready
+      ? ""
+      : "Run Scan Only first to create the Photos cache.";
+  }}
+
+  if (openPortalButton) {{
+    openPortalButton.disabled = busy || !status.portal_ready;
+    openPortalButton.title = status.portal_ready
+      ? ""
+      : "Build outputs first to create the portal.";
+  }}
+
+  if (openFolderButton) {{
+    openFolderButton.disabled = false;
+  }}
 
   const logEl = document.getElementById("log");
   const oldBottom = logEl.scrollTop + logEl.clientHeight >= logEl.scrollHeight - 20;
   logEl.value = log.lines.join("\\n");
   if (oldBottom) {{
     logEl.scrollTop = logEl.scrollHeight;
+  }}
+
+  if (window.agrandizApplyI18n) {{
+    agrandizApplyI18n();
   }}
 }}
 
@@ -798,6 +961,7 @@ document.getElementById("openFolder").addEventListener("click", async () => {{
 setInterval(refresh, 1200);
 refresh();
 </script>
+{i18n_js()}
 </body>
 </html>"""
 
@@ -811,7 +975,7 @@ class Handler(BaseHTTPRequestHandler):
             return
 
         if parsed.path == "/api/status":
-            json_response(self, CURRENT_STATUS)
+            json_response(self, runtime_state())
             return
 
         if parsed.path == "/api/log":
