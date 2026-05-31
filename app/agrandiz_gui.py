@@ -256,6 +256,10 @@ def run_pipeline():
             [py, "scripts/render_story_moments_v4.py", "--input", "cache/story_candidates_v3.json", "--exclude", "config/excludes.json", "--outdir", "cache", "--lang", "both"],
             "Rendering story gallery",
         ),
+        (
+            [py, "scripts/build_family_timeline.py", "--db", "cache/agrandiz.sqlite", "--config", "config/family_timeline.json", "--outdir", "cache", "--lang", "both"],
+            "Building family timeline",
+        ),
     ]
 
     for args, title in commands:
@@ -263,7 +267,9 @@ def run_pipeline():
         if not ok:
             return
 
+    ensure_portal_index(ensure_project())
     log("Story discovery pipeline completed.")
+    log("You can now click Open Portal.")
     set_status(False, "Ready")
 
 
@@ -411,15 +417,15 @@ def ensure_portal_index(project_dir):
 
 def open_portal():
     project_dir = ensure_project()
-    index = project_dir / "cache" / "index.html"
+    index = ensure_portal_index(project_dir)
 
     if not index.exists():
-        log("Portal not found yet. Run Build Story Discovery first.")
+        log("Portal could not be created.")
         return False
 
     webbrowser.open(index.as_uri())
+    log(f"Opened portal: {index}")
     return True
-
 
 def json_response(handler, obj, status=200):
     payload = json.dumps(obj, ensure_ascii=False, indent=2).encode("utf-8")
@@ -815,7 +821,8 @@ def main():
     log(f"Bundled project: {bundled_project_dir()}")
 
     try:
-        ensure_project()
+        project_dir = ensure_project()
+        ensure_portal_index(project_dir)
     except Exception as exc:
         log(f"Project preparation error: {exc}")
         set_status(False, "Project preparation error", str(exc))

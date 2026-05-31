@@ -1,0 +1,57 @@
+{
+  "title_tr": "Çocukların Büyüme Hikâyesi",
+  "title_en": "Children's Growing-Up Story",
+  "subtitle_tr": "Photos/iCloud arşivindeki çocuk, aile, doğum günü, okul, oyun ve gündelik hayat anılarından oluşturulan zaman çizelgesi.",
+  "subtitle_en": "A timeline built from child, family, birthday, school, play and everyday-life memories in the Photos/iCloud archive.",
+  "children": [
+    {
+      "name": "Çocuk 1",
+      "birthdate": null
+    },
+    {
+      "name": "Çocuk 2",
+      "birthdate": null
+    }
+  ],
+  "from_date": null,
+  "to_date": null,
+  "include_any": [
+    "child",
+    "children",
+    "kid",
+    "baby",
+    "boy",
+    "girl",
+    "toddler",
+    "school",
+    "student",
+    "playground",
+    "toy",
+    "birthday",
+    "birthday cake",
+    "cake",
+    "family",
+    "people",
+    "mask",
+    "table",
+    "pizza"
+  ],
+  "exclude_any": [
+    "screenshot",
+    "receipt",
+    "document",
+    "building",
+    "fortification",
+    "arch",
+    "cat",
+    "dog",
+    "fish",
+    "shark",
+    "seafood"
+  ],
+  "min_score": 0.30,
+  "max_moments_per_year": 16,
+  "max_total_moments": 160,
+  "moment_seconds": 90,
+  "burst_seconds": 5
+}
