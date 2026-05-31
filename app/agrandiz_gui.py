@@ -316,7 +316,7 @@ def run_pipeline():
             "Rendering story gallery",
         ),
         (
-            [py, "scripts/build_family_timeline.py", "--db", "cache/agrandiz.sqlite", "--config", "config/family_timeline.json", "--outdir", "cache", "--lang", "both"],
+            [py, "scripts/build_family_timeline.py", "--db", "cache/agrandiz.sqlite", "--config", "config/family_timeline.json", "--outdir", "cache", "--fast"],
             "Building family timeline",
         ),
     ]
