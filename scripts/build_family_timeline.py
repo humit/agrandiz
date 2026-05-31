@@ -855,17 +855,17 @@ def patch_portal_index(outdir):
 
     text = index.read_text()
 
-    if "family-timeline.tr.apple.apple_icloud.html" in text:
+    if "family-timeline.apple.apple_icloud.html" in text:
         return
 
     insert = """
-      <a class="portal-card" href="family-timeline.tr.apple.apple_icloud.html">
+      <a class="portal-card" href="family-timeline.apple.apple_icloud.html">
         <div class="eyebrow">Türkçe · Family Timeline</div>
         <h2>Çocukların Büyüme Hikâyesi</h2>
         <p>Çocuk, aile, doğum günü, okul ve gündelik hayat anılarından yıllara yayılan zaman çizelgesi.</p>
       </a>
 
-      <a class="portal-card" href="family-timeline.en.apple.apple_icloud.html">
+      <a class="portal-card" href="family-timeline.apple.apple_icloud.html">
         <div class="eyebrow">English · Family Timeline</div>
         <h2>Children's Growing-Up Story</h2>
         <p>A year-by-year timeline from child, family, birthday, school and everyday-life memories.</p>
@@ -944,7 +944,7 @@ def main():
 
     for lang in langs:
         html_text = render_html(timeline, config, lang)
-        html_path = outdir / f"family-timeline.{lang}.apple.apple_icloud.html"
+        html_path = outdir / "family-timeline.apple.apple_icloud.html"
         html_path.write_text(html_text, encoding="utf-8")
         print(f"Wrote {html_path}")
 

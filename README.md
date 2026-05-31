@@ -143,8 +143,8 @@ Builds a year-by-year family timeline focused on children, family, birthday, sch
 Outputs:
 
     cache/family_timeline.json
-    cache/family-timeline.tr.apple.apple_icloud.html
-    cache/family-timeline.en.apple.apple_icloud.html
+    cache/family-timeline.apple.apple_icloud.html
+    cache/family-timeline.apple.apple_icloud.html
 
 ### Local Web UI
 
