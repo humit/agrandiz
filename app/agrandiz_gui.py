@@ -328,7 +328,7 @@ def run_pipeline():
 
     ensure_portal_index(ensure_project())
     log("Story discovery pipeline completed.")
-    log("You can now click Open Portal.")
+    log("You can now click Open Dashboard.")
     set_status(False, "Ready")
 
 
@@ -515,13 +515,17 @@ def runtime_state():
     family_path = cache_dir / "family-timeline.apple.apple_icloud.html"
 
     photos_cache_ready = sqlite_has_photos_table(db_path)
-    portal_ready = index_path.exists()
 
     outputs_ready = (
         stories_path.exists()
         or dashboard_path.exists()
         or family_path.exists()
+        or (cache_dir / "story_candidates.json").exists()
     )
+
+    # The index may exist as an empty shell before discovery runs.
+    # For the GUI status, "ready" should mean actual story/dashboard outputs exist.
+    portal_ready = outputs_ready
 
     return {
         "busy": CURRENT_STATUS["busy"],
@@ -894,10 +898,10 @@ def app_html():
         <div class="label" data-i18n="web.demo_portal">Demo portal</div>
         <div id="demoPortalValue" class="value warn">Checking...</div>
         <p class="card-note" data-i18n="web.portal_card_desc">
-          Build dashboard, story discovery, moment gallery, and family timeline outputs.
+          Discover story candidates, build the dashboard, create moment galleries, and generate the family timeline.
         </p>
         <button class="primary card-button" id="build" type="button">
-          <span data-i18n="web.build_outputs">2. Build Outputs</span>
+          <span data-i18n="web.discover_stories">Discover Stories</span>
         </button>
       </article>
 
@@ -917,7 +921,7 @@ def app_html():
 
     <section class="actions">
       <button id="openPortal" type="button">
-        <span data-i18n="web.open_portal">3. Open Portal</span>
+        <span data-i18n="web.open_dashboard">Open Dashboard</span>
       </button>
       <button id="openFolder" type="button">
         <span data-i18n="web.open_output_folder">Open Output Folder</span>
@@ -1002,7 +1006,7 @@ async function refresh() {{
       portalValue.classList.remove("ok");
       portalValue.classList.add("warn");
     }} else {{
-      portalValue.textContent = status.portal_ready ? "Ready" : "Missing";
+      portalValue.textContent = status.portal_ready ? "Ready" : "Empty";
       portalValue.classList.toggle("ok", !!status.portal_ready);
       portalValue.classList.toggle("warn", !status.portal_ready);
     }}
@@ -1028,7 +1032,7 @@ async function refresh() {{
     openPortalButton.disabled = busy || !status.portal_ready;
     openPortalButton.title = status.portal_ready
       ? ""
-      : "Build outputs first to create the portal.";
+      : "Discover stories first to create the dashboard.";
   }}
 
   if (openFolderButton) {{

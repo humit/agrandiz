@@ -34,7 +34,7 @@
   "web.hero_title": "Apple Photos için preview-first hikâye keşfi.",
   "web.hero_subtitle": "Önce Photos Library taranır. Sonra dashboard ve hikâye çıktıları üretilir. Ardından lokal portal açılır.",
   "web.photos_cache": "Photos cache",
-  "web.demo_portal": "Demo portal",
+  "web.demo_portal": "Hikâye Dashboard’u",
   "web.not_scanned": "Henüz taranmadı",
   "web.not_built": "Henüz üretilmedi",
   "web.project_folder": "Proje klasörü",
@@ -74,6 +74,8 @@
   "portal.card.dashboard.title": "Arşiv Özeti",
   "portal.card.dashboard.desc": "Apple Photos/iCloud arşivi, preview erişimi ve güçlü adaylar için lokal özet.",
   "web.cache_card_desc": "Apple Photos’tan lokal SQLite metadata cache’ini oluştur veya yenile.",
-  "web.portal_card_desc": "Dashboard, hikâye keşfi, moment galerisi ve aile zaman çizelgesi çıktılarını üret.",
-  "web.scan_photos": "Fotoğrafları Tara"
+  "web.portal_card_desc": "Hikâye adaylarını keşfet, dashboard’u üret, moment galerilerini ve aile zaman çizelgesini oluştur.",
+  "web.scan_photos": "Fotoğrafları Tara",
+  "web.discover_stories": "Hikâyeleri Keşfet",
+  "web.open_dashboard": "Dashboard’u Aç"
 }
