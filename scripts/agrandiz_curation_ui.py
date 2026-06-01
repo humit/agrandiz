@@ -190,7 +190,7 @@ def render_curation_card(moment, lang, extra_badges=None):
       data-frames="{frames_json}"
       data-exclude-payload="{payload_json}"
     >
-      <div class="story-photo-img">
+      <div class="story-photo-img" role="button" tabindex="0" aria-label="Open image preview">
         <img src="{esc(item.get('thumb'))}" alt="{esc(caption_text)}" loading="lazy">
         <div class="sequence-hint">micro sequence</div>
       </div>
@@ -248,6 +248,7 @@ CURATION_CARD_CSS = """
       position: relative;
       height: clamp(210px, 22vw, 330px);
       overflow: hidden;
+      cursor: zoom-in;
       background:
         linear-gradient(45deg, #f2f2f4 25%, transparent 25%),
         linear-gradient(-45deg, #f2f2f4 25%, transparent 25%),
@@ -341,6 +342,79 @@ CURATION_CARD_CSS = """
       color: #8e8e93;
       margin-top: 2px;
     }
+
+
+    body.curation-lightbox-open {
+      overflow: hidden;
+    }
+
+    .curation-lightbox {
+      position: fixed;
+      inset: 0;
+      z-index: 9999;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      background: rgba(0,0,0,.72);
+      backdrop-filter: blur(12px);
+    }
+
+    .curation-lightbox.is-open {
+      display: flex;
+    }
+
+    .curation-lightbox-inner {
+      width: min(1120px, 96vw);
+      max-height: 92vh;
+      display: grid;
+      gap: 12px;
+    }
+
+    .curation-lightbox-frame {
+      position: relative;
+      border-radius: 24px;
+      overflow: hidden;
+      background: #111;
+      box-shadow: 0 24px 80px rgba(0,0,0,.42);
+    }
+
+    .curation-lightbox img {
+      width: 100%;
+      max-height: 78vh;
+      object-fit: contain;
+      display: block;
+      background: #111;
+    }
+
+    .curation-lightbox-close {
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      border: 0;
+      border-radius: 999px;
+      width: 38px;
+      height: 38px;
+      background: rgba(255,255,255,.92);
+      color: #1d1d1f;
+      font-size: 22px;
+      line-height: 1;
+      cursor: pointer;
+    }
+
+    .curation-lightbox-caption {
+      color: #fff;
+      font-size: 14px;
+      line-height: 1.45;
+      text-shadow: 0 1px 2px rgba(0,0,0,.4);
+    }
+
+    .curation-lightbox-sub {
+      color: rgba(255,255,255,.72);
+      font-size: 12px;
+      margin-top: 4px;
+    }
+
 
     @media (max-width: 1200px) {
       .story-photo-grid {
@@ -502,6 +576,65 @@ def curation_js(copy_label, reset_label=""):
       }}
     }}
 
+
+    function setupLightbox() {{
+      const overlay = document.createElement("div");
+      overlay.className = "curation-lightbox";
+      overlay.setAttribute("role", "dialog");
+      overlay.setAttribute("aria-modal", "true");
+      overlay.setAttribute("aria-label", "Image preview");
+      overlay.innerHTML = '<div class="curation-lightbox-inner"><div class="curation-lightbox-frame"><button class="curation-lightbox-close" type="button" aria-label="Close image preview">×</button><img alt=""></div><div class="curation-lightbox-caption"></div><div class="curation-lightbox-sub"></div></div>';
+      document.body.appendChild(overlay);
+
+      const lightboxImage = overlay.querySelector("img");
+      const lightboxCaption = overlay.querySelector(".curation-lightbox-caption");
+      const lightboxSub = overlay.querySelector(".curation-lightbox-sub");
+      const closeButton = overlay.querySelector(".curation-lightbox-close");
+
+      function close() {{
+        overlay.classList.remove("is-open");
+        document.body.classList.remove("curation-lightbox-open");
+        lightboxImage.removeAttribute("src");
+      }}
+
+      function openFromCard(card) {{
+        if (!card) return;
+        const img = card.querySelector(".story-photo-img img");
+        if (!img) return;
+        const caption = card.querySelector(".photo-caption");
+        const sub = card.querySelector(".photo-sub");
+        lightboxImage.src = img.currentSrc || img.src;
+        lightboxImage.alt = img.alt || "";
+        lightboxCaption.textContent = caption ? caption.textContent.trim() : "";
+        lightboxSub.textContent = sub ? sub.textContent.trim() : "";
+        overlay.classList.add("is-open");
+        document.body.classList.add("curation-lightbox-open");
+      }}
+
+      document.querySelectorAll(".story-photo-img").forEach(zone => {{
+        zone.addEventListener("click", event => {{
+          event.preventDefault();
+          event.stopPropagation();
+          openFromCard(zone.closest(".story-photo"));
+        }});
+        zone.addEventListener("keydown", event => {{
+          if (event.key === "Enter" || event.key === " ") {{
+            event.preventDefault();
+            openFromCard(zone.closest(".story-photo"));
+          }}
+        }});
+      }});
+
+      closeButton.addEventListener("click", close);
+      overlay.addEventListener("click", event => {{
+        if (event.target === overlay) close();
+      }});
+      document.addEventListener("keydown", event => {{
+        if (event.key === "Escape" && overlay.classList.contains("is-open")) close();
+      }});
+    }}
+
+
     function setupMicroSequences() {{
       document.querySelectorAll(".story-photo").forEach(card => {{
         let frames = [];
@@ -542,16 +675,13 @@ def curation_js(copy_label, reset_label=""):
         card.addEventListener("mouseenter", start);
         card.addEventListener("mouseleave", stop);
 
-        card.querySelector(".story-photo-img").addEventListener("click", () => {{
-          if (timer) stop();
-          else start();
-        }});
       }});
     }}
 
     updateExcludeTextarea();
     setupExcludeButtons();
     setupCopyAndClear();
+    setupLightbox();
     setupMicroSequences();
     applyHiddenCards();
   </script>"""
