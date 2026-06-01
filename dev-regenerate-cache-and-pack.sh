@@ -42,8 +42,7 @@ if [[ -f config/story_profiles/apple_icloud_default.json ]]; then
   python -u scripts/discover_stories.py \
     --db "$DB_PATH" \
     --outdir "$CACHE_DIR" \
-    --config config/story_profiles/apple_icloud_default.json \
-    --lang both
+    --config config/story_profiles/apple_icloud_default.json
 
   echo "== Grouping story moments =="
   python -u scripts/group_story_moments.py \
@@ -56,8 +55,7 @@ if [[ -f config/story_profiles/apple_icloud_default.json ]]; then
 
   echo "== Rendering story moments =="
   python -u scripts/render_story_moments.py \
-    --outdir "$CACHE_DIR" \
-    --lang both
+    --outdir "$CACHE_DIR"
 else
   echo "WARN: config/story_profiles/apple_icloud_default.json not found; skipping generic story moments pipeline."
 fi
@@ -75,6 +73,38 @@ fi
 
 echo "== Generated files =="
 find "$CACHE_DIR" -maxdepth 2 -type f | sort
+
+echo "== Sanity check: canonical outputs =="
+SANITY_OK=1
+for f in \
+  "$CACHE_DIR/dashboard.apple.apple_icloud.html" \
+  "$CACHE_DIR/stories.apple.apple_icloud.html" \
+  "$CACHE_DIR/stories-raw.apple.apple_icloud.html" \
+  "$CACHE_DIR/stories-moments.apple.apple_icloud.html" \
+  "$CACHE_DIR/family-timeline.apple.apple_icloud.html"; do
+  if [[ -f "$f" ]]; then
+    echo "  OK      $f"
+  else
+    echo "  MISSING $f" >&2
+    SANITY_OK=0
+  fi
+done
+for f in \
+  "$CACHE_DIR/stories-raw.tr.apple.apple_icloud.html" \
+  "$CACHE_DIR/stories-raw.en.apple.apple_icloud.html" \
+  "$CACHE_DIR/stories-moments.tr.apple.apple_icloud.html" \
+  "$CACHE_DIR/stories-moments.en.apple.apple_icloud.html"; do
+  if [[ ! -f "$f" ]]; then
+    echo "  OK absent $f"
+  else
+    echo "  STALE $f" >&2
+    SANITY_OK=0
+  fi
+done
+if [[ "$SANITY_OK" -eq 0 ]]; then
+  echo "ERROR: sanity check failed — see above." >&2
+  exit 1
+fi
 
 echo "== Packing generated HTML/JSON =="
 find "$CACHE_DIR" -type f \( -name "*.html" -o -name "*.json" \) -print0 | \

@@ -59,7 +59,7 @@ def render_moment(moment, lang):
     milestones = "".join(f'<span class="chip matched">{esc(term)}</span>' for term in (moment.get("milestone_terms") or [])[:4])
 
     if lang == "tr":
-        original = "Orijinal iCloud’da" if item.get("original_status") == "icloud" else "Orijinal lokal"
+        original = "Orijinal iCloud'da" if item.get("original_status") == "icloud" else "Orijinal lokal"
         album_label = "Albüm"
         similar_label = "benzer kare"
         variant_label = "Moment"

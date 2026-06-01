@@ -86,11 +86,9 @@ Current generated output examples include:
 ```text
 cache/dashboard.apple.apple_icloud.html
 cache/stories.apple.apple_icloud.html
+cache/stories-raw.apple.apple_icloud.html
+cache/stories-moments.apple.apple_icloud.html
 cache/family-timeline.apple.apple_icloud.html
-cache/stories-raw.tr.apple.apple_icloud.html
-cache/stories-raw.en.apple.apple_icloud.html
-cache/stories-moments.tr.apple.apple_icloud.html
-cache/stories-moments.en.apple.apple_icloud.html
 cache/dashboard_data.json
 cache/family_timeline.json
 cache/story_candidates.json
@@ -197,9 +195,14 @@ The immediate UI/UX roadmap is:
 2. ✅ Add `app-nav` and i18n infrastructure to `dashboard.apple.apple_icloud.html`.
 3. ✅ Bring `stories-raw.*` and `stories-moments.*` pages closer to the same nav/header structure.
 4. ✅ Extract a shared app shell/template system (`agrandiz_shell.py`: `APP_NAV_CSS`, `app_nav_html`).
-5. Remove `--lang` CLI argument from all renderers once every page uses in-page i18n switching (currently `stories-raw.*` and `stories-moments.*` still generate separate per-lang files).
+5. ✅ Convert `stories-raw` and `stories-moments` to single canonical files with in-page i18n — `data-lang` for data-driven bilingual strings, `data-i18n` for UI labels, `--lang` argument removed from both scripts.
+6. ✅ Post-migration cleanup: stale per-lang cache artifacts deleted, pipeline script updated, README and AGENTS updated, sanity check added to `dev-regenerate-cache-and-pack.sh`.
 
 Do not jump directly to a large shared template refactor unless explicitly requested. Prefer incremental patches.
+
+### Product language flag
+
+`make_dashboard.py` TRANSLATIONS contains `"brand_tag": "Make your family archive visible"` (EN) and `"Aile arşivinizi görünür hale getirin"` (TR). This tag is displayed on the main dashboard header and scopes the whole product to family archives — which contradicts the flexible product framing above. Candidate replacement: `"Make your photo archive visible"` / `"Fotoğraf arşivinizi görünür hale getirin"`. Do not change this without an explicit product decision.
 
 Important: although the next UI task touches the Family Timeline page, do not reframe the whole application around family timelines. In the UI, navigation, and code abstractions, treat Family Timeline as one story profile among many possible profiles.
 

@@ -179,7 +179,7 @@ def render_moment(moment, lang):
     terms = "".join(f'<span class="chip matched">{esc(term)}</span>' for term in (item.get("matched_terms") or [])[:4])
 
     if lang == "tr":
-        original = "Orijinal iCloud’da" if item.get("original_status") == "icloud" else "Orijinal lokal"
+        original = "Orijinal iCloud'da" if item.get("original_status") == "icloud" else "Orijinal lokal"
         album_label = "Albüm"
         moment_label = "Moment"
         similar_label = "benzer kare"
@@ -326,15 +326,15 @@ def render_page(data, lang):
     if lang == "tr":
         title = "agrandiz hikâye keşfi"
         hero = "Kürasyon kontrollü moment galerisi"
-        subtitle = "Tam görünen thumbnail’ler, hızlı exclude akışı ve hover/touch micro-sequence ile daha kullanılabilir hikâye adayları."
+        subtitle = "Tam görünen thumbnail'ler, hızlı exclude akışı ve hover/touch micro-sequence ile daha kullanılabilir hikâye adayları."
         candidates_label = "story adayı"
         moments_label = "seçili moment"
         grouped_label = "gruplanan varyant"
         excluded_label = "aktif exclude kuralı"
-        copy_label = "Exclude JSON’u kopyala"
+        copy_label = "Exclude JSON'u kopyala"
         reset_label = "Bu tarayıcıdaki geçici exclude listesini temizle"
         panel_title = "Kürasyon araçları"
-        panel_desc = "Exclude butonuna bastığında kart hemen gizlenir ve aşağıdaki JSON güncellenir. Kalıcı yapmak için JSON’u config/excludes.json dosyasına yapıştırıp sayfayı yeniden üret."
+        panel_desc = "Exclude butonuna bastığında kart hemen gizlenir ve aşağıdaki JSON güncellenir. Kalıcı yapmak için JSON'u config/excludes.json dosyasına yapıştırıp sayfayı yeniden üret."
     else:
         title = "agrandiz story discovery"
         hero = "Curatable moment gallery"
@@ -909,7 +909,6 @@ def main():
     parser.add_argument("--input", default="cache/story_candidates_grouped.json")
     parser.add_argument("--exclude", default="config/excludes.json")
     parser.add_argument("--outdir", default="cache")
-    parser.add_argument("--lang", default="both", choices=["tr", "en", "both"])
     args = parser.parse_args()
 
     outdir = Path(args.outdir)
@@ -923,13 +922,10 @@ def main():
     json_path.write_text(json.dumps(data, indent=2, ensure_ascii=False), encoding="utf-8")
     print(f"Wrote {json_path}")
 
-    langs = ["tr", "en"] if args.lang == "both" else [args.lang]
-
-    for lang in langs:
-        html_text = render_page(data, lang)
-        html_path = outdir / "stories.apple.apple_icloud.html"
-        html_path.write_text(html_text, encoding="utf-8")
-        print(f"Wrote {html_path}")
+    html_text = render_page(data, "tr")
+    html_path = outdir / "stories.apple.apple_icloud.html"
+    html_path.write_text(html_text, encoding="utf-8")
+    print(f"Wrote {html_path}")
 
 
     print()

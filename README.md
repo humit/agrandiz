@@ -79,10 +79,9 @@ The scan includes metadata such as:
 
 ### Dashboard
 
-Generates Apple-style local dashboard pages:
+Generates an Apple-style local dashboard page:
 
-    cache/dashboard.tr.apple.apple_icloud.html
-    cache/dashboard.en.apple.apple_icloud.html
+    cache/dashboard.apple.apple_icloud.html
     cache/dashboard_data.json
 
 ### Story Discovery
@@ -104,8 +103,7 @@ Current story categories include:
 Raw discovery outputs:
 
     cache/story_candidates_raw.json
-    cache/stories-raw.tr.apple.apple_icloud.html
-    cache/stories-raw.en.apple.apple_icloud.html
+    cache/stories-raw.apple.apple_icloud.html
 
 ### Moment Grouping
 
@@ -116,8 +114,7 @@ Instead of showing five almost-identical birthday photos, Agrandiz shows one rep
 Grouped outputs:
 
     cache/story_candidates_grouped.json
-    cache/stories-moments.tr.apple.apple_icloud.html
-    cache/stories-moments.en.apple.apple_icloud.html
+    cache/stories-moments.apple.apple_icloud.html
 
 ### Curatable Story Gallery
 
@@ -133,8 +130,7 @@ Renders the final story gallery with:
 Final story outputs:
 
     cache/story_candidates.json
-    cache/stories.tr.apple.apple_icloud.html
-    cache/stories.en.apple.apple_icloud.html
+    cache/stories.apple.apple_icloud.html
 
 ### Family Timeline
 
@@ -143,7 +139,6 @@ Builds a year-by-year family timeline focused on children, family, birthday, sch
 Outputs:
 
     cache/family_timeline.json
-    cache/family-timeline.apple.apple_icloud.html
     cache/family-timeline.apple.apple_icloud.html
 
 ### Local Web UI
@@ -229,39 +224,34 @@ Expected output:
       --db cache/agrandiz.sqlite \
       --outdir cache \
       --theme apple \
-      --profile apple_icloud \
-      --lang both
+      --profile apple_icloud
 
 ### 3. Discover Raw Stories
 
     python scripts/discover_stories.py \
       --db cache/agrandiz.sqlite \
       --outdir cache \
-      --config config/story_profiles/apple_icloud_default.json \
-      --lang both
+      --config config/story_profiles/apple_icloud_default.json
 
 ### 4. Group Story Moments
 
     python scripts/group_story_moments.py \
       --input cache/story_candidates_raw.json \
-      --outdir cache \
-      --lang both
+      --outdir cache
 
 ### 5. Render Final Story Gallery
 
     python scripts/render_story_moments.py \
       --input cache/story_candidates_grouped.json \
       --exclude config/excludes.json \
-      --outdir cache \
-      --lang both
+      --outdir cache
 
 ### 6. Build Family Timeline
 
     python scripts/story_builder.py \
       --db cache/agrandiz.sqlite \
       --config config/family_timeline.json \
-      --outdir cache \
-      --lang both
+      --outdir cache
 
 ---
 
@@ -331,8 +321,7 @@ Then re-render:
     python scripts/render_story_moments.py \
       --input cache/story_candidates_grouped.json \
       --exclude config/excludes.json \
-      --outdir cache \
-      --lang both
+      --outdir cache
 
 ---
 

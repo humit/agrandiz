@@ -474,12 +474,12 @@ def build_stories(rows, config, thumbs_dir):
 
 
 def render_item(item):
-    labels = "".join(f’<span class="chip">{esc(label)}</span>’ for label in item.get("labels", [])[:6])
-    terms = "".join(f’<span class="chip matched">{esc(term)}</span>’ for term in item.get("matched_terms", [])[:4])
+    labels = "".join(f'<span class="chip">{esc(label)}</span>' for label in item.get("labels", [])[:6])
+    terms = "".join(f'<span class="chip matched">{esc(term)}</span>' for term in item.get("matched_terms", [])[:4])
 
-    score = f"{float(item[‘score’]):.3f}" if item.get("score") is not None else "-"
+    score = f"{float(item['score']):.3f}" if item.get("score") is not None else "-"
     caption_text = esc(item.get("caption") or "")
-    caption_display = caption_text if caption_text else ‘<span data-i18n="common.no_caption">No caption</span>’
+    caption_display = caption_text if caption_text else "<span data-i18n=\"common.no_caption\">No caption</span>"
     caption_alt = item.get("caption") or ""
     original_key = "common.original_icloud" if item["original_status"] == "icloud" else "common.original_local"
     original_fallback = "Original in iCloud" if item["original_status"] == "icloud" else "Original local"
@@ -487,7 +487,7 @@ def render_item(item):
     return f"""
     <article class="story-photo">
       <div class="story-photo-img">
-        <img src="{esc(item[‘thumb’])}" alt="{esc(caption_alt)}" loading="lazy">
+        <img src="{esc(item['thumb'])}" alt="{esc(caption_alt)}" loading="lazy">
       </div>
       <div class="story-photo-meta">
         <div class="photo-badges">
@@ -496,7 +496,7 @@ def render_item(item):
           <span class="mini-badge">Score {score}</span>
         </div>
         <div class="photo-caption">{caption_display}</div>
-        <div class="photo-sub"><span data-i18n="common.album">Album</span>: {esc(item.get(‘album’) or ‘-’)} · {esc(item.get(‘date’) or ‘’)}</div>
+        <div class="photo-sub"><span data-i18n="common.album">Album</span>: {esc(item.get('album') or '-')} · {esc(item.get('date') or '')}</div>
         <div class="chips">{terms}{labels}</div>
       </div>
     </article>
@@ -504,32 +504,32 @@ def render_item(item):
 
 
 def render_story_card(story):
-    title = f’<span data-lang="tr">{esc(story["title_tr"])}</span><span data-lang="en">{esc(story["title_en"])}</span>’
-    desc = f’<span data-lang="tr">{esc(story["desc_tr"])}</span><span data-lang="en">{esc(story["desc_en"])}</span>’
-    reel = f’<span data-lang="tr">{esc(story["reel_tr"])}</span><span data-lang="en">{esc(story["reel_en"])}</span>’
+    title = f'<span data-lang="tr">{esc(story["title_tr"])}</span><span data-lang="en">{esc(story["title_en"])}</span>'
+    desc = f'<span data-lang="tr">{esc(story["desc_tr"])}</span><span data-lang="en">{esc(story["desc_en"])}</span>'
+    reel = f'<span data-lang="tr">{esc(story["reel_tr"])}</span><span data-lang="en">{esc(story["reel_en"])}</span>'
 
-    outputs = "".join(f’<span class="output-chip">{esc(o)}</span>’ for o in story["output_types"])
+    outputs = "".join(f'<span class="output-chip">{esc(o)}</span>' for o in story["output_types"])
     thumbs = "".join(render_item(item) for item in story["items"][:12])
 
     return f"""
-    <section class="story-section" id="{esc(story[‘id’])}">
+    <section class="story-section" id="{esc(story['id'])}">
       <div class="story-head">
         <div>
-          <div class="story-emoji">{esc(story[‘emoji’])}</div>
+          <div class="story-emoji">{esc(story['emoji'])}</div>
           <h2>{title}</h2>
           <p>{desc}</p>
         </div>
         <div class="story-score">
-          <div class="score-number">{story[‘story_score’]}</div>
+          <div class="score-number">{story['story_score']}</div>
           <div class="score-label" data-i18n="common.readiness_score">Readiness score</div>
         </div>
       </div>
 
       <div class="story-stats">
-        <span>{story[‘item_count’]} <span data-i18n="common.source_items">source items</span></span>
-        <span>{story[‘original_local_count’]} <span data-i18n="common.original_local">original local</span></span>
-        <span>{story[‘original_icloud_count’]} <span data-i18n="common.original_icloud">original in iCloud</span></span>
-        <span>{story[‘reel_structure’][‘duration’]} · {story[‘reel_structure’][‘format’]}</span>
+        <span>{story['item_count']} <span data-i18n="common.source_items">source items</span></span>
+        <span>{story['original_local_count']} <span data-i18n="common.original_local">original local</span></span>
+        <span>{story['original_icloud_count']} <span data-i18n="common.original_icloud">original in iCloud</span></span>
+        <span>{story['reel_structure']['duration']} · {story['reel_structure']['format']}</span>
       </div>
 
       <div class="story-output">
