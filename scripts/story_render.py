@@ -23,7 +23,7 @@ from agrandiz_curation_ui import (
 )
 
 
-def num(value: Any, digits: int = 2) -> str:
+def num(value: Any, digits: int = 0) -> str:
     try:
         return f"{float(value):.{digits}f}"
     except Exception:
