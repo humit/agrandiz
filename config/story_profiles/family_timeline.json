@@ -4,7 +4,6 @@
   "template_id": "people_timeline",
   "kind": "story_dashboard",
   "layout": "timeline",
-
   "source": {
     "id": "apple.apple_icloud",
     "type": "photos_metadata",
@@ -18,61 +17,133 @@
       "user_override"
     ]
   },
-
   "output": {
     "json": "family_timeline.json",
     "html": "family-timeline.apple.apple_icloud.html"
   },
-
   "i18n": {
     "title": "family.page_title",
     "subtitle": "family.subtitle",
     "eyebrow": "family.timeline"
   },
-
   "filters": {
     "any": [
-      { "type": "tag", "value": "child" },
-      { "type": "tag", "value": "children" },
-      { "type": "tag", "value": "kid" },
-      { "type": "tag", "value": "baby" },
-      { "type": "tag", "value": "school" },
-      { "type": "tag", "value": "student" },
-      { "type": "tag", "value": "playground" },
-      { "type": "tag", "value": "toy" },
-      { "type": "tag", "value": "birthday" },
-      { "type": "tag", "value": "birthday cake" },
-      { "type": "tag", "value": "cake" },
-      { "type": "tag", "value": "family" },
-      { "type": "tag", "value": "people" },
-      { "type": "tag", "value": "table" },
-      { "type": "tag", "value": "pizza" }
+      {
+        "type": "tag",
+        "value": "child"
+      },
+      {
+        "type": "tag",
+        "value": "children"
+      },
+      {
+        "type": "tag",
+        "value": "kid"
+      },
+      {
+        "type": "tag",
+        "value": "baby"
+      },
+      {
+        "type": "tag",
+        "value": "school"
+      },
+      {
+        "type": "tag",
+        "value": "student"
+      },
+      {
+        "type": "tag",
+        "value": "playground"
+      },
+      {
+        "type": "tag",
+        "value": "toy"
+      },
+      {
+        "type": "tag",
+        "value": "birthday"
+      },
+      {
+        "type": "tag",
+        "value": "birthday cake"
+      },
+      {
+        "type": "tag",
+        "value": "cake"
+      },
+      {
+        "type": "tag",
+        "value": "family"
+      },
+      {
+        "type": "tag",
+        "value": "people"
+      },
+      {
+        "type": "tag",
+        "value": "table"
+      },
+      {
+        "type": "tag",
+        "value": "pizza"
+      }
     ],
     "none": [
-      { "type": "tag", "value": "screenshot" },
-      { "type": "tag", "value": "receipt" },
-      { "type": "tag", "value": "document" },
-      { "type": "tag", "value": "building" },
-      { "type": "tag", "value": "fortification" },
-      { "type": "tag", "value": "arch" },
-      { "type": "tag", "value": "cat" },
-      { "type": "tag", "value": "dog" },
-      { "type": "tag", "value": "fish" },
-      { "type": "tag", "value": "shark" },
-      { "type": "tag", "value": "seafood" }
+      {
+        "type": "tag",
+        "value": "screenshot"
+      },
+      {
+        "type": "tag",
+        "value": "receipt"
+      },
+      {
+        "type": "tag",
+        "value": "document"
+      },
+      {
+        "type": "tag",
+        "value": "building"
+      },
+      {
+        "type": "tag",
+        "value": "fortification"
+      },
+      {
+        "type": "tag",
+        "value": "arch"
+      },
+      {
+        "type": "tag",
+        "value": "cat"
+      },
+      {
+        "type": "tag",
+        "value": "dog"
+      },
+      {
+        "type": "tag",
+        "value": "fish"
+      },
+      {
+        "type": "tag",
+        "value": "shark"
+      },
+      {
+        "type": "tag",
+        "value": "seafood"
+      }
     ]
   },
-
   "selection": {
     "min_score": 0.3
   },
-
   "time": {
     "from": null,
     "to": null,
     "group_by": "year"
   },
-
   "grouping": {
     "mode": "timeline",
     "moment_seconds": 90,
@@ -80,23 +151,25 @@
     "max_moments_per_year": 16,
     "max_total_moments": 160
   },
-
   "entities": {
     "people": {},
     "places": {},
     "tags": {}
   },
-
   "user_semantics": {
     "people": {},
     "places": {},
     "tags": {}
   },
-
   "source_metadata_policy": {
     "prefer_source_people": true,
     "prefer_source_places": true,
     "prefer_source_labels": true,
     "user_overrides_source": true
+  },
+  "builder": {
+    "script": "build_family_timeline.py",
+    "mode": "compatibility",
+    "note": "Temporary builder mapping until discovery/grouping/rendering are split into generic modules."
   }
 }

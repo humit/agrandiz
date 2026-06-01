@@ -310,7 +310,7 @@ def run_pipeline():
             "Building dashboard",
         ),
         (
-            [py, "scripts/discover_stories.py", "--db", "cache/agrandiz.sqlite", "--outdir", "cache", "--config", "config/story_profiles/apple_icloud_default.json", "--lang", "both"],
+            [py, "scripts/discover_stories.py", "--db", "cache/agrandiz.sqlite", "--outdir", "cache", "--profile", "config/story_profiles/apple_icloud_default.json", "--lang", "both"],
             "Discovering stories",
         ),
         (
@@ -326,7 +326,7 @@ def run_pipeline():
             "Rendering story gallery",
         ),
         (
-            [py, "scripts/build_family_timeline.py", "--db", "cache/agrandiz.sqlite", "--config", "config/family_timeline.json", "--outdir", "cache", "--fast"],
+            [py, "scripts/story_pipeline.py", "--db", "cache/agrandiz.sqlite", "--profile", "config/story_profiles/family_timeline.json", "--outdir", "cache", "--fast"],
             "Building family timeline",
         ),
     ]
