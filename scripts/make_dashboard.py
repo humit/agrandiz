@@ -16,7 +16,7 @@ from agrandiz_shell import app_nav_html
 
 TRANSLATIONS = {
     "tr": {
-        "brand_tag": "Aile arşivinizi görünür hale getirin",
+        "brand_tag": "Fotoğraf arşivini görünür hale getirin",
         "hero_title": "agrandiz arşivinizdeki hikâyeleri buldu",
         "hero_subtitle": "Mac + Photos/iCloud arşivinizden keşfedilen ilk özet ve albüm adayları.",
         "memories_found": "anı bulundu",
@@ -57,7 +57,7 @@ TRANSLATIONS = {
         "apple_note": "Bu ilk sürüm Apple Photos/iCloud arşivine göre tasarlanmıştır. Görseller güvenli lokal preview kopyalarından gösterilir.",
     },
     "en": {
-        "brand_tag": "Make your family archive visible",
+        "brand_tag": "Make your photo archive visible",
         "hero_title": "agrandiz found stories in your archive",
         "hero_subtitle": "First summary and album candidates discovered from your Mac + Photos/iCloud archive.",
         "memories_found": "memories found",
