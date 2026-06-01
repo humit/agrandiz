@@ -21,10 +21,11 @@ from story_common import source_identity
 from story_builder import run_story_builder
 
 
-SUPPORTED_BUILDER_IDS = {
+LEGACY_BUILDER_FALLBACKS = {
     "family_timeline": "story_builder.py",
     "people_timeline": "story_builder.py",
 }
+
 
 
 def script_dir() -> Path:
@@ -34,9 +35,8 @@ def script_dir() -> Path:
 def builder_for_profile(profile: dict[str, Any]) -> str:
     """Return the builder script for a story profile.
 
-    The current compatibility mapping intentionally routes timeline-like
-    profiles to the generic story builder. Future refactor steps will replace this
-    with direct generic story_discover/story_group/story_render orchestration.
+    Preferred source is profile["builder"]["script"]. The legacy fallback exists
+    only so older profiles without an explicit builder can still run.
     """
 
     builder = profile.get("builder")
@@ -48,20 +48,15 @@ def builder_for_profile(profile: dict[str, Any]) -> str:
     profile_id = str(profile.get("id") or "")
     template_id = str(profile.get("template_id") or "")
 
-    if profile_id in SUPPORTED_BUILDER_IDS:
-        return SUPPORTED_BUILDER_IDS[profile_id]
+    if profile_id in LEGACY_BUILDER_FALLBACKS:
+        return LEGACY_BUILDER_FALLBACKS[profile_id]
 
-    if template_id in SUPPORTED_BUILDER_IDS:
-        return SUPPORTED_BUILDER_IDS[template_id]
-
-    layout = str(profile.get("layout") or "")
-    if layout == "timeline":
-        return "story_builder.py"
+    if template_id in LEGACY_BUILDER_FALLBACKS:
+        return LEGACY_BUILDER_FALLBACKS[template_id]
 
     raise SystemExit(
-        "Unsupported story profile. Add a builder mapping or migrate this "
-        f"profile to a supported layout. profile_id={profile_id!r} "
-        f"template_id={template_id!r} layout={layout!r}"
+        "Unsupported story profile. Add an explicit builder.script field to the "
+        f"profile. profile_id={profile_id!r} template_id={template_id!r}"
     )
 
 
