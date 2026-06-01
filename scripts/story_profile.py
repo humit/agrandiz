@@ -9,22 +9,16 @@ or user-edited profile files.
 
 from __future__ import annotations
 
-import json
 from pathlib import Path
 from typing import Any
+
+from story_common import read_json
 
 
 DEFAULT_SOURCE = "apple.apple_icloud"
 DEFAULT_LAYOUT = "timeline"
 DEFAULT_OUTPUT_JSON = "family_timeline.json"
 DEFAULT_OUTPUT_HTML = "family-timeline.apple.apple_icloud.html"
-
-
-def load_json_file(path: str | Path) -> dict[str, Any]:
-    p = Path(path)
-    if not p.exists():
-        raise FileNotFoundError(f"Config not found: {path}")
-    return json.loads(p.read_text(encoding="utf-8"))
 
 
 def normalize_story_profile(raw: dict[str, Any], source_path: str | Path | None = None) -> dict[str, Any]:
@@ -176,7 +170,7 @@ def _terms_from_filters(filters: dict[str, Any], bucket: str) -> list[str]:
 
 
 def load_story_profile(path: str | Path) -> dict[str, Any]:
-    raw = load_json_file(path)
+    raw = read_json(path)
     profile = normalize_story_profile(raw, path)
     profile["profile_path"] = str(path)
     return profile

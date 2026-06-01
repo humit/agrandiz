@@ -18,6 +18,7 @@ from typing import Any
 
 from agrandiz_version import print_version
 from story_profile import load_story_profile
+from story_common import source_identity
 
 
 SUPPORTED_BUILDER_IDS = {
@@ -94,6 +95,10 @@ def run_builder(args: argparse.Namespace, profile: dict[str, Any]) -> int:
         cmd += ["--max-total-moments", str(args.max_total_moments)]
 
     print("Story pipeline profile:", args.profile)
+    print("Story pipeline id:", profile.get("id"))
+    print("Story pipeline template:", profile.get("template_id"))
+    print("Story pipeline layout:", profile.get("layout"))
+    print("Story pipeline source:", source_identity(profile))
     print("Story pipeline builder:", builder_script)
     print("Story pipeline output dir:", args.outdir)
 

@@ -12,6 +12,10 @@ from pathlib import Path
 from urllib.parse import quote
 
 from agrandiz_i18n import i18n_js, language_switcher_html
+from story_common import (
+    profile_filter_terms,
+    source_identity,
+)
 from story_profile import (
     legacy_selection_config,
     load_story_profile,
