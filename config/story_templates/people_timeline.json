@@ -1,0 +1,32 @@
+{
+  "schema_version": 1,
+  "id": "people_timeline",
+  "kind": "story_template",
+  "label_i18n": "template.people_timeline",
+  "description_i18n": "template.people_timeline.desc",
+  "default_layout": "timeline",
+
+  "suggested_filters": {
+    "any": [
+      { "type": "entity", "value": "person" },
+      { "type": "tag", "value": "family" },
+      { "type": "tag", "value": "birthday" },
+      { "type": "tag", "value": "school" }
+    ],
+    "none": [
+      { "type": "tag", "value": "screenshot" },
+      { "type": "tag", "value": "receipt" },
+      { "type": "tag", "value": "document" }
+    ]
+  },
+
+  "required_signals": {
+    "min_items": 20,
+    "any_tags": [
+      "family",
+      "birthday",
+      "school",
+      "people"
+    ]
+  }
+}

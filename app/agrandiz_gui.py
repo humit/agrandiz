@@ -242,7 +242,7 @@ def make_unbuffered(args):
     return args
 
 
-def run_command(args, title):
+def run_command(args, title, keep_busy=False):
     project_dir = ensure_project()
     args = make_unbuffered(args)
 
@@ -281,7 +281,10 @@ def run_command(args, title):
             return False
 
         log(f"{title} completed.")
-        set_status(False, "Ready")
+        if keep_busy:
+            set_status(True, f"{title} completed.")
+        else:
+            set_status(False, "Ready")
         return True
 
     except Exception as exc:
@@ -297,6 +300,7 @@ def run_pipeline():
         return
 
     log("Build requested. This step creates dashboard, story candidates, moment grouping and story gallery.")
+    set_status(True, "Generating Stories")
 
     py = app_python()
 
@@ -322,13 +326,13 @@ def run_pipeline():
             "Rendering story gallery",
         ),
         (
-            [py, "scripts/build_family_timeline.py", "--db", "cache/agrandiz.sqlite", "--config", "config/family_timeline.json", "--outdir", "cache", "--fast"],
+            [py, "scripts/story_pipeline.py", "--db", "cache/agrandiz.sqlite", "--profile", "config/story_profiles/family_timeline.json", "--outdir", "cache", "--fast"],
             "Building family timeline",
         ),
     ]
 
     for args, title in commands:
-        ok = run_command(args, title)
+        ok = run_command(args, title, keep_busy=True)
         if not ok:
             return
 
@@ -1115,9 +1119,15 @@ async function refresh() {{
   }}
 
   if (openDashboardValue) {{
-    openDashboardValue.textContent = status.portal_ready ? "Ready" : "Unavailable";
-    openDashboardValue.classList.toggle("ok", !!status.portal_ready);
-    openDashboardValue.classList.toggle("warn", !status.portal_ready);
+    if (isBuilding) {{
+      openDashboardValue.textContent = "Working...";
+      openDashboardValue.classList.remove("ok");
+      openDashboardValue.classList.add("warn");
+    }} else {{
+      openDashboardValue.textContent = status.portal_ready ? "Ready" : "Unavailable";
+      openDashboardValue.classList.toggle("ok", !!status.portal_ready);
+      openDashboardValue.classList.toggle("warn", !status.portal_ready);
+    }}
   }}
 
   const scanButton = document.getElementById("scan");

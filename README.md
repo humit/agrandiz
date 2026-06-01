@@ -177,7 +177,7 @@ From the web UI, the user can:
     ├── scripts/
     │   ├── agrandiz_version.py
     │   ├── build_dmg.sh
-    │   ├── build_family_timeline.py
+    │   ├── story_builder.py
     │   ├── build_macos_app.sh
     │   ├── discover_stories.py
     │   ├── group_story_moments.py
@@ -257,7 +257,7 @@ Expected output:
 
 ### 6. Build Family Timeline
 
-    python scripts/build_family_timeline.py \
+    python scripts/story_builder.py \
       --db cache/agrandiz.sqlite \
       --config config/family_timeline.json \
       --outdir cache \

@@ -78,5 +78,12 @@
   "web.scan_photos": "Fotoğrafları Tara",
   "web.discover_stories": "Hikâyeleri Keşfet",
   "web.open_dashboard": "Dashboard’u Aç",
-  "web.generate_stories": "Hikâyeleri Üret"
+  "web.generate_stories": "Hikâyeleri Üret",
+  "template.people_timeline": "Kişi zaman çizelgesi",
+  "template.people_timeline.desc": "Kişi, aile, doğum günü, okul ve gündelik hayat sinyallerinden timeline dashboard üretir.",
+  "story.profile.source_metadata_policy": "Kaynak metadata politikası",
+  "nav.dashboard": "Dashboard",
+  "nav.stories": "Hikâyeler",
+  "nav.family_timeline": "Aile Zaman Çizelgesi",
+  "stories.brand_section": "hikâye keşfi"
 }

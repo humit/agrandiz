@@ -336,15 +336,15 @@ def render_page(data, lang):
         panel_desc = "Exclude butonuna bastığında kart hemen gizlenir ve aşağıdaki JSON güncellenir. Kalıcı yapmak için JSON’u config/excludes.json dosyasına yapıştırıp sayfayı yeniden üret."
     else:
         title = "agrandiz story discovery"
-        hero = '<span data-i18n="stories.hero_title">Curatable moment gallery</span>'
-        subtitle = '<span data-i18n="stories.hero_subtitle">Full-image thumbnails, fast exclude flow and hover/touch micro-sequences for more usable story candidates.</span>'
+        hero = "Curatable moment gallery"
+        subtitle = "Full-image thumbnails, fast exclude flow and hover/touch micro-sequences for more usable story candidates."
         candidates_label = "story candidates"
         moments_label = "selected moments"
         grouped_label = "grouped variants"
         excluded_label = "active exclude rules"
-        copy_label = '<span data-i18n="stories.copy_exclude_json">Copy exclude JSON</span>'
-        reset_label = '<span data-i18n="stories.clear_excludes">Clear temporary exclude list in this browser</span>'
-        panel_title = '<span data-i18n="stories.curation_tools">Curation tools</span>'
+        copy_label = "Copy exclude JSON"
+        reset_label = "Clear temporary exclude list in this browser"
+        panel_title = "Curation tools"
         panel_desc = "When you click Exclude, the card is hidden immediately and the JSON below is updated. To make it persistent, paste the JSON into config/excludes.json and regenerate."
 
     stories = data.get("stories", [])
@@ -670,17 +670,47 @@ def render_page(data, lang):
         grid-template-columns: 1fr;
       }}
     }}
+  
+    .app-nav {{
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin: 18px 0 0;
+    }}
+
+    .app-nav a {{
+      display: inline-flex;
+      align-items: center;
+      border-radius: 999px;
+      padding: 8px 12px;
+      background: rgba(255,255,255,.72);
+      border: 1px solid rgba(0,0,0,.08);
+      color: #0071e3;
+      font-weight: 650;
+      text-decoration: none;
+    }}
+
+    .app-nav a[aria-current="page"] {{
+      background: rgba(0,113,227,.10);
+      color: #1d1d1f;
+    }}
+
   </style>
 </head>
 
 <body class="theme-apple profile-apple_icloud">
   <div class="shell">
     <header class="hero">
-      <div class="brand">agrandiz <span>story discovery</span></div>
+      <div class="brand">agrandiz <span data-i18n="stories.brand_section">story discovery</span></div>
       {language_switcher_html()}
+      <nav class="app-nav" aria-label="Agrandiz">
+        <a href="dashboard.apple.apple_icloud.html" data-i18n="nav.dashboard">Dashboard</a>
+        <a href="stories.apple.apple_icloud.html" aria-current="page" data-i18n="nav.stories">Stories</a>
+        <a href="family-timeline.apple.apple_icloud.html" data-i18n="nav.family_timeline">Family Timeline</a>
+      </nav>
       <div class="hero-copy">
-        <h1>{esc(hero)}</h1>
-        <p>{esc(subtitle)}</p>
+        <h1 data-i18n="stories.hero_title">{esc(hero)}</h1>
+        <p data-i18n="stories.hero_subtitle">{esc(subtitle)}</p>
       </div>
     </header>
 
@@ -705,7 +735,7 @@ def render_page(data, lang):
 
     <section class="curation-panel">
       <h2>{esc(panel_title)}</h2>
-      <p>{esc(panel_desc)}</p>
+      <p data-i18n="stories.curation_desc">{esc(panel_desc)}</p>
       <div class="curation-actions">
         <button id="copy-exclude-json" type="button">{esc(copy_label)}</button>
         <button id="clear-excludes" type="button">{esc(reset_label)}</button>
@@ -899,39 +929,6 @@ def render_page(data, lang):
 """
 
 
-def write_index_links():
-    p = Path("cache/index.html")
-    if not p.exists():
-        return
-
-    text = p.read_text()
-
-    insert = '''
-      <a class="portal-card" href="stories.tr.apple.apple_icloud.html">
-        <div class="eyebrow">Türkçe · Story Discovery</div>
-        <h2>Kürasyon Kontrollü Moment Galerisi</h2>
-        <p>Tam görünen fotoğraflar, exclude butonları ve hover micro-sequence ile gelişmiş hikâye adayları.</p>
-      </a>
-
-      <a class="portal-card" href="stories.en.apple.apple_icloud.html">
-        <div class="eyebrow">English · Story Discovery</div>
-        <h2>Curatable Moment Gallery</h2>
-        <p>Full-image thumbnails, exclude buttons and hover micro-sequences for story candidates.</p>
-      </a>
-'''
-
-    if "stories.tr.apple.apple_icloud.html" in text:
-        return
-
-    needle = '''    </section>
-
-    <section class="workflow">'''
-
-    if needle in text:
-        text = text.replace(needle, insert + "\n" + needle)
-        p.write_text(text)
-
-
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--input", default="cache/story_candidates_grouped.json")
@@ -959,7 +956,6 @@ def main():
         html_path.write_text(html_text, encoding="utf-8")
         print(f"Wrote {html_path}")
 
-    write_index_links()
 
     print()
     print("Summary:")
