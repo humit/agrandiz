@@ -210,15 +210,134 @@ Install dependencies in a virtual environment:
 
 ## Development Workflow
 
-### 1. Scan Photos Library
+The pipeline reads Apple Photos metadata through `osxphotos` and a local SQLite cache,
+then produces static HTML galleries and JSON data contracts.
+All steps run locally; no cloud upload or Apple Photos modification occurs.
 
-    python scripts/scan_to_sqlite.py
+The five canonical HTML outputs are:
 
-Expected output:
+    cache/dashboard.apple.apple_icloud.html
+    cache/stories.apple.apple_icloud.html
+    cache/stories-raw.apple.apple_icloud.html
+    cache/stories-moments.apple.apple_icloud.html
+    cache/family-timeline.apple.apple_icloud.html
+
+All pages share a navigation shell (`scripts/agrandiz_shell.py`) and in-page
+language switching (`scripts/agrandiz_i18n.py`). Language is selected at runtime
+in the browser; a separate per-language HTML file is not generated.
+
+---
+
+### 1. Prepare or refresh the local metadata cache
+
+**What it does:** Reads the Apple Photos library through `osxphotos` and writes
+every asset's metadata to a local SQLite database. This is the only step that
+touches Apple Photos directly.
+
+**Inputs:** The default Apple Photos library on the current Mac user account.
+
+**Output:**
 
     cache/agrandiz.sqlite
 
-### 2. Build Dashboard
+**When to run:** Once before the first build, and again whenever the Photos
+library has changed significantly (new imports, face tags, albums, etc.).
+
+    python scripts/scan_to_sqlite.py
+
+**Verify:** The file `cache/agrandiz.sqlite` exists and has a non-zero size.
+
+---
+
+### 2. Discover story candidates
+
+**What it does:** Queries the SQLite cache against configurable story profiles
+(e.g. childhood moments, pets, travel, WhatsApp highlights). Scores candidates,
+removes near-duplicates, and applies cross-story diversity. Produces raw
+story candidate data and a developer-facing gallery for inspection.
+
+**Inputs:**
+- `cache/agrandiz.sqlite`
+- `config/story_profiles/apple_icloud_default.json`
+
+**Outputs:**
+
+    cache/story_candidates_raw.json
+    cache/stories-raw.apple.apple_icloud.html
+
+    python scripts/discover_stories.py \
+      --db cache/agrandiz.sqlite \
+      --outdir cache \
+      --config config/story_profiles/apple_icloud_default.json
+
+**Verify:** `stories-raw.apple.apple_icloud.html` opens in a browser and shows
+story sections with photo thumbnails.
+
+---
+
+### 3. Group story moments and render the moments gallery
+
+**What it does:** Takes the raw story candidates and clusters near-duplicate,
+burst-like, and same-moment photos. Each cluster is reduced to one representative
+image, with variants kept for hover micro-sequences. Produces a moments-grouped
+gallery for review before final curation.
+
+**Inputs:** `cache/story_candidates_raw.json`
+
+**Outputs:**
+
+    cache/story_candidates_grouped.json
+    cache/stories-moments.apple.apple_icloud.html
+
+    python scripts/group_story_moments.py \
+      --input cache/story_candidates_raw.json \
+      --outdir cache
+
+**Verify:** `stories-moments.apple.apple_icloud.html` shows moment cards with
+variant counts where applicable.
+
+---
+
+### 4. Render the final story gallery
+
+**What it does:** Applies the active exclusion list to the grouped candidates and
+renders the final curatable story gallery. This is the primary output users
+interact with — it includes exclude buttons, hover micro-sequences, and full-image
+thumbnails. It also writes the clean story candidates JSON used by downstream
+workflows.
+
+**Inputs:**
+- `cache/story_candidates_grouped.json`
+- `config/excludes.json` (persistent user exclusions; safe if empty)
+
+**Outputs:**
+
+    cache/story_candidates.json
+    cache/stories.apple.apple_icloud.html
+
+    python scripts/render_story_moments.py \
+      --input cache/story_candidates_grouped.json \
+      --exclude config/excludes.json \
+      --outdir cache
+
+**Verify:** `stories.apple.apple_icloud.html` shows the curated gallery with
+exclude controls. If a moment was previously excluded via the browser and the JSON
+was saved to `config/excludes.json`, it should be absent here.
+
+---
+
+### 5. Build the dashboard
+
+**What it does:** Queries the SQLite cache for archive-level metrics (total
+assets, local vs. iCloud availability, top labels, suggested story types) and
+renders the main dashboard. The dashboard links to all other generated outputs.
+
+**Inputs:** `cache/agrandiz.sqlite`
+
+**Outputs:**
+
+    cache/dashboard.apple.apple_icloud.html
+    cache/dashboard_data.json
 
     python scripts/make_dashboard.py \
       --db cache/agrandiz.sqlite \
@@ -226,31 +345,87 @@ Expected output:
       --theme apple \
       --profile apple_icloud
 
-### 3. Discover Raw Stories
+**Verify:** `dashboard.apple.apple_icloud.html` shows archive metrics and portal
+cards linking to the story gallery and family timeline.
 
-    python scripts/discover_stories.py \
-      --db cache/agrandiz.sqlite \
-      --outdir cache \
-      --config config/story_profiles/apple_icloud_default.json
+---
 
-### 4. Group Story Moments
+### 6. Build the family timeline
 
-    python scripts/group_story_moments.py \
-      --input cache/story_candidates_raw.json \
-      --outdir cache
+**What it does:** Runs a dedicated story profile (`family_timeline.json`) that
+filters for child, family, birthday, school, play, and daily-life moments. Groups
+them by year and renders a year-by-year memory timeline. This is one story profile
+among many; the same `story_builder.py` engine can run other profiles.
 
-### 5. Render Final Story Gallery
+**Inputs:**
+- `cache/agrandiz.sqlite`
+- `config/family_timeline.json`
 
-    python scripts/render_story_moments.py \
-      --input cache/story_candidates_grouped.json \
-      --exclude config/excludes.json \
-      --outdir cache
+**Outputs:**
 
-### 6. Build Family Timeline
+    cache/family_timeline.json
+    cache/family-timeline.apple.apple_icloud.html
 
     python scripts/story_builder.py \
       --db cache/agrandiz.sqlite \
       --config config/family_timeline.json \
+      --outdir cache
+
+**Fast iteration mode:** Pass `--fast` to cap candidates and moments at a lower
+limit. Use this for layout and UI work when you do not need to scan the full
+library. A full run on a large library can take several minutes.
+
+    python scripts/story_builder.py \
+      --db cache/agrandiz.sqlite \
+      --config config/family_timeline.json \
+      --outdir cache \
+      --fast
+
+**Verify:** `family-timeline.apple.apple_icloud.html` shows year sections with
+moment cards. The page title and subtitle are family-specific (driven by the
+`family.page_title` and `family.subtitle` locale keys).
+
+---
+
+### 7. Full regeneration and packaging
+
+**What it does:** Performs a clean end-to-end regeneration: preserves the SQLite
+cache, wipes and rebuilds `cache/`, runs the full pipeline in order, runs a
+sanity check asserting the five canonical HTML files exist and no stale
+per-language files are present, then packs all HTML and JSON into a timestamped
+tarball.
+
+    bash dev-regenerate-cache-and-pack.sh
+
+**Sanity check — canonical files that must be present:**
+
+    cache/dashboard.apple.apple_icloud.html
+    cache/stories.apple.apple_icloud.html
+    cache/stories-raw.apple.apple_icloud.html
+    cache/stories-moments.apple.apple_icloud.html
+    cache/family-timeline.apple.apple_icloud.html
+
+**Stale files that must be absent after a clean run:**
+
+    cache/stories-raw.tr.apple.apple_icloud.html
+    cache/stories-raw.en.apple.apple_icloud.html
+    cache/stories-moments.tr.apple.apple_icloud.html
+    cache/stories-moments.en.apple.apple_icloud.html
+
+The script exits non-zero if any canonical file is missing or any stale file is
+present. The tarball is written to `/tmp/agrandiz-generated-html-<timestamp>.tar.gz`.
+
+---
+
+### 8. Excluding false positives
+
+When a story moment should be permanently excluded, use the exclude button in
+`stories.apple.apple_icloud.html`. Copy the generated JSON from the browser panel
+into `config/excludes.json`, then re-run step 4:
+
+    python scripts/render_story_moments.py \
+      --input cache/story_candidates_grouped.json \
+      --exclude config/excludes.json \
       --outdir cache
 
 ---
