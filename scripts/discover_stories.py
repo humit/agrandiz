@@ -769,7 +769,7 @@ def render_page(stories, lang, config_path):
 
     {story_cards}
 
-    <a class="back-link" href="index.html">← {esc(back)}</a>
+    <a class="back-link" href="dashboard.apple.apple_icloud.html">← {esc(back)}</a>
   </div>
 </body>
 </html>
