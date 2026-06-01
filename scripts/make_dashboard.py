@@ -3,7 +3,6 @@
 import argparse
 import sqlite3
 import json
-import html
 import shutil
 from pathlib import Path
 from collections import Counter
@@ -12,6 +11,14 @@ from urllib.parse import quote
 
 from agrandiz_i18n import i18n_js, language_switcher_html
 from agrandiz_shell import app_nav_html
+from agrandiz_curation_ui import (
+    esc,
+    normalize_excludes, item_is_excluded,
+    render_curation_card,
+    CURATION_CARD_CSS,
+    curation_js,
+    curation_panel_html,
+)
 
 
 TRANSLATIONS = {
@@ -55,6 +62,10 @@ TRANSLATIONS = {
         "theme": "Tema",
         "platform": "Kaynak profili",
         "apple_note": "Bu ilk sürüm Apple Photos/iCloud arşivine göre tasarlanmıştır. Görseller güvenli lokal preview kopyalarından gösterilir.",
+        "curation_title": "Kürasyon araçları",
+        "curation_desc": "Exclude butonuna bastığında kart hemen gizlenir ve aşağıdaki JSON güncellenir. Kalıcı yapmak için JSON'u config/excludes.json dosyasına yapıştırıp sayfayı yeniden üret.",
+        "copy_exclude": "Exclude JSON'u kopyala",
+        "clear_excludes": "Bu tarayıcıdaki geçici exclude listesini temizle",
     },
     "en": {
         "brand_tag": "Make your photo archive visible",
@@ -96,16 +107,16 @@ TRANSLATIONS = {
         "theme": "Theme",
         "platform": "Source profile",
         "apple_note": "This first version is designed around Apple Photos/iCloud archives. Images are rendered from safe local preview copies.",
+        "curation_title": "Curation tools",
+        "curation_desc": "When you click Exclude, the card is hidden immediately and the JSON below is updated. To make it persistent, paste the JSON into config/excludes.json and regenerate.",
+        "copy_exclude": "Copy exclude JSON",
+        "clear_excludes": "Clear temporary exclude list in this browser",
     },
 }
 
 
 def q1(conn, sql):
     return conn.execute(sql).fetchone()[0]
-
-
-def esc(value):
-    return html.escape(str(value)) if value is not None else ""
 
 
 def num(n):
@@ -343,53 +354,50 @@ def write_dashboard_data(outdir, data):
     print(f"Wrote {out_file}")
 
 
-def render_photo_card(photo, t):
-    chips = "".join(f'<span class="chip">{esc(label)}</span>' for label in photo["labels"])
-
-    availability = t["needs_download"] if photo["is_missing"] else t["ready_now"]
-    availability_class = "icloud" if photo["is_missing"] else "local"
-
-    caption = esc(photo["caption"] or t["no_caption"])
-    album = esc(photo["album"] or "-")
-    filename = esc(photo["filename"] or "")
-    date = esc(photo["date"] or "")
-    score = f"{photo['score']:.3f}" if photo["score"] is not None else "-"
-
-    if photo.get("thumb"):
-        image_html = f'<img src="{esc(photo["thumb"])}" alt="{caption}" loading="lazy">'
-    else:
-        image_html = '<div class="thumb-placeholder"></div>'
-
-    badges = []
+def _dashboard_card(photo, lang):
+    """Convert a dashboard photo dict to a shared curation card."""
+    extra_badges = []
     if photo.get("favorite"):
-        badges.append("★")
+        extra_badges.append("★")
     if photo.get("live_photo"):
-        badges.append("Live")
+        extra_badges.append("Live")
     if photo.get("screenshot"):
-        badges.append("Screenshot")
+        extra_badges.append("Screenshot")
 
-    badges_html = "".join(f'<span class="chip">{esc(badge)}</span>' for badge in badges)
+    item = {
+        "uuid": photo.get("uuid"),
+        "phash": None,
+        "filename": photo.get("filename"),
+        "caption": photo.get("caption"),
+        "thumb": photo.get("thumb"),
+        "date": photo.get("date"),
+        "album": photo.get("album"),
+        "score": photo.get("score"),
+        "labels": photo.get("labels", []),
+        "matched_terms": [],
+        "original_status": "icloud" if photo.get("is_missing") else "local",
+    }
 
-    return f"""
-    <article class="photo-card">
-      <div class="thumb-wrap">{image_html}</div>
-      <div class="photo-meta">
-        <div class="row top">
-          <span class="availability {availability_class}">{availability}</span>
-          <span class="score">{t['score']}: {score}</span>
-        </div>
-        <div class="filename">{filename}</div>
-        <div class="caption">{caption}</div>
-        <div class="submeta">{t['album']}: {album} · {date}</div>
-        <div class="chips">{badges_html}{chips}</div>
-      </div>
-    </article>
-    """
+    moment = {
+        "representative": item,
+        "variants": [],
+        "variant_count": 1,
+    }
+
+    return render_curation_card(moment, lang, extra_badges=extra_badges or None)
 
 
-def render_dashboard(theme, lang, profile, data):
+def render_dashboard(theme, lang, profile, data, excludes=None):
     t = TRANSLATIONS[lang]
     m = data["metrics"]
+
+    excludes_norm = normalize_excludes(excludes or {})
+
+    def _excl(photo):
+        return item_is_excluded({
+            "uuid": photo.get("uuid"), "phash": None,
+            "filename": photo.get("filename"), "caption": photo.get("caption"),
+        }, excludes_norm)
 
     labels_html = "".join(
         f'<span class="label-pill">{esc(item["label"])} <strong>{item["count"]}</strong></span>'
@@ -418,9 +426,15 @@ def render_dashboard(theme, lang, profile, data):
         </article>
         """
 
-    top_scored_html = "".join(render_photo_card(p, t) for p in data["photo_sets"]["top_scored"])
-    top_local_html = "".join(render_photo_card(p, t) for p in data["photo_sets"]["top_local"])
-    top_cloud_html = "".join(render_photo_card(p, t) for p in data["photo_sets"]["top_cloud"])
+    top_scored_html = "".join(
+        _dashboard_card(p, lang) for p in data["photo_sets"]["top_scored"] if not _excl(p)
+    )
+    top_local_html = "".join(
+        _dashboard_card(p, lang) for p in data["photo_sets"]["top_local"] if not _excl(p)
+    )
+    top_cloud_html = "".join(
+        _dashboard_card(p, lang) for p in data["photo_sets"]["top_cloud"] if not _excl(p)
+    )
 
     return f"""<!doctype html>
 <html lang="{lang}">
@@ -429,6 +443,68 @@ def render_dashboard(theme, lang, profile, data):
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>agrandiz dashboard</title>
   <link rel="stylesheet" href="../themes/{theme}.css">
+  <style>
+    .mini-badge {{
+      font-size: 11px;
+      padding: 5px 8px;
+      border-radius: 999px;
+      border: 1px solid rgba(0,0,0,0.08);
+      background: #f3f4f6;
+      color: #3a3a3c;
+    }}
+    .moment-badge, .chip.matched {{
+      background: rgba(0,113,227,0.10);
+      color: #0071e3;
+    }}
+    .curation-panel {{
+      background: rgba(255,255,255,0.78);
+      border: 1px solid rgba(0,0,0,0.08);
+      border-radius: 28px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+      padding: 22px;
+      margin: 24px 0;
+    }}
+    .curation-panel h2 {{
+      margin: 0 0 8px;
+      font-size: 24px;
+      letter-spacing: -0.03em;
+    }}
+    .curation-panel p {{
+      margin: 0 0 14px;
+      color: #6e6e73;
+      line-height: 1.5;
+    }}
+    .curation-actions {{
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 12px;
+    }}
+    .curation-actions button, .exclude-button {{
+      border: 1px solid rgba(0,0,0,0.08);
+      border-radius: 999px;
+      padding: 8px 12px;
+      background: #fff;
+      color: #0071e3;
+      font-weight: 650;
+      cursor: pointer;
+    }}
+    .exclude-button {{
+      color: #b42318;
+    }}
+    #exclude-json {{
+      width: 100%;
+      min-height: 130px;
+      border: 1px solid rgba(0,0,0,0.08);
+      border-radius: 18px;
+      padding: 14px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 12px;
+      background: #fff;
+      color: #1d1d1f;
+    }}
+{CURATION_CARD_CSS}
+  </style>
 </head>
 <body class="theme-{theme} profile-{profile}">
   <div class="shell">
@@ -502,6 +578,8 @@ def render_dashboard(theme, lang, profile, data):
       <div class="stories-grid">{story_cards}</div>
     </section>
 
+    {curation_panel_html(t['curation_title'], t['curation_desc'], t['copy_exclude'], t['clear_excludes'])}
+
     <section>
       <h2 class="section-title">{esc(t['top_scored'])}</h2>
       <div class="photo-grid">{top_scored_html}</div>
@@ -537,6 +615,7 @@ def render_dashboard(theme, lang, profile, data):
   </div>
 </section>
 
+{curation_js(t['copy_exclude'])}
 {i18n_js()}
 </body>
 </html>
