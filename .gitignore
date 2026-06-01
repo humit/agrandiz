@@ -25,3 +25,7 @@ thumbs/
 # Logs / temp
 *.log
 tmp/
+
+# Local patch backups
+*.bak
+*.bak.*

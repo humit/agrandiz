@@ -310,7 +310,7 @@ def run_pipeline():
             "Building dashboard",
         ),
         (
-            [py, "scripts/discover_stories.py", "--db", "cache/agrandiz.sqlite", "--outdir", "cache", "--profile", "config/story_profiles/apple_icloud_default.json", "--lang", "both"],
+            [py, "scripts/discover_stories.py", "--db", "cache/agrandiz.sqlite", "--outdir", "cache", "--config", "config/story_profiles/apple_icloud_default.json", "--lang", "both"],
             "Discovering stories",
         ),
         (
