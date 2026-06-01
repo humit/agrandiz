@@ -56,37 +56,6 @@ def build_timeline(rows, config, thumbs_dir):
     }
 
 
-def patch_portal_index(outdir):
-    index = outdir / "index.html"
-    if not index.exists():
-        return
-
-    text = index.read_text()
-
-    if "family-timeline.apple.apple_icloud.html" in text:
-        return
-
-    insert = """
-      <a class="portal-card" href="family-timeline.apple.apple_icloud.html">
-        <div class="eyebrow">Türkçe · Family Timeline</div>
-        <h2>Çocukların Büyüme Hikâyesi</h2>
-        <p>Çocuk, aile, doğum günü, okul ve gündelik hayat anılarından yıllara yayılan zaman çizelgesi.</p>
-      </a>
-
-      <a class="portal-card" href="family-timeline.apple.apple_icloud.html">
-        <div class="eyebrow">English · Family Timeline</div>
-        <h2>Children's Growing-Up Story</h2>
-        <p>A year-by-year timeline from child, family, birthday, school and everyday-life memories.</p>
-      </a>
-"""
-
-    needle = '    </section>'
-    pos = text.find(needle)
-    if pos != -1:
-        text = text[:pos] + insert + "\n" + text[pos:]
-        index.write_text(text)
-
-
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--db", default="cache/agrandiz.sqlite")
@@ -156,8 +125,6 @@ def main():
     html_path = outdir / profile_output_html(profile)
     html_path.write_text(html_text, encoding="utf-8")
     print(f"Wrote {html_path}")
-
-    patch_portal_index(outdir)
 
 
 if __name__ == "__main__":
