@@ -66,6 +66,14 @@ TRANSLATIONS = {
         "curation_desc": "Exclude butonuna bastığında kart hemen gizlenir ve aşağıdaki JSON güncellenir. Kalıcı yapmak için JSON'u config/excludes.json dosyasına yapıştırıp sayfayı yeniden üret.",
         "copy_exclude": "Exclude JSON'u kopyala",
         "clear_excludes": "Bu tarayıcıdaki geçici exclude listesini temizle",
+        "generated_content": "Üretilen içerik",
+        "generated_content_desc": "Bu dashboard’dan üretilen hikâye çıktılarını açın.",
+        "story_gallery_eyebrow": "Hikâye Galerisi",
+        "story_gallery_title": "Hikâye Galerisini Aç",
+        "story_gallery_desc": "Kürasyonlu hikâye adaylarını, gruplanmış momentleri ve exclude listesini gözden geçirin.",
+        "family_timeline_eyebrow": "Aile Zaman Çizelgesi",
+        "family_timeline_title": "Aile Zaman Çizelgesini Aç",
+        "family_timeline_desc": "Yıllara göre bellek zaman çizelgesini inceleyin.",
     },
     "en": {
         "brand_tag": "Make your photo archive visible",
@@ -111,6 +119,14 @@ TRANSLATIONS = {
         "curation_desc": "When you click Exclude, the card is hidden immediately and the JSON below is updated. To make it persistent, paste the JSON into config/excludes.json and regenerate.",
         "copy_exclude": "Copy exclude JSON",
         "clear_excludes": "Clear temporary exclude list in this browser",
+        "generated_content": "Generated content",
+        "generated_content_desc": "Open the generated story outputs from this dashboard.",
+        "story_gallery_eyebrow": "Story Gallery",
+        "story_gallery_title": "Open Story Gallery",
+        "story_gallery_desc": "Review curated story candidates, grouped moments, and exclusions.",
+        "family_timeline_eyebrow": "Family Timeline",
+        "family_timeline_title": "Open Family Timeline",
+        "family_timeline_desc": "Browse the year-by-year memory timeline.",
     },
 }
 
@@ -121,6 +137,17 @@ def q1(conn, sql):
 
 def num(n):
     return f"{n:,}".replace(",", ".")
+
+
+def lang_spans(tr_text, en_text):
+    return (
+        f'<span data-lang="tr">{esc(tr_text)}</span>'
+        f'<span data-lang="en">{esc(en_text)}</span>'
+    )
+
+
+def dashboard_label(key):
+    return lang_spans(TRANSLATIONS["tr"].get(key, key), TRANSLATIONS["en"].get(key, key))
 
 
 def load_json(raw, default=None):
@@ -405,24 +432,24 @@ def render_dashboard(theme, lang, profile, data, excludes=None):
     )
 
     story_defs = [
-        ("whatsapp_highlights", t["story_whatsapp_title"], t["story_whatsapp_desc"]),
-        ("childhood_moments", t["story_child_title"], t["story_child_desc"]),
-        ("tables_and_gatherings", t["story_food_title"], t["story_food_desc"]),
-        ("trees_and_outdoor_days", t["story_nature_title"], t["story_nature_desc"]),
-        ("surprisingly_beautiful", t["story_beautiful_title"], t["story_beautiful_desc"]),
-        ("people_and_inner_circle", t["story_people_title"], t["story_people_desc"]),
+        ("whatsapp_highlights", "story_whatsapp_title", "story_whatsapp_desc"),
+        ("childhood_moments", "story_child_title", "story_child_desc"),
+        ("tables_and_gatherings", "story_food_title", "story_food_desc"),
+        ("trees_and_outdoor_days", "story_nature_title", "story_nature_desc"),
+        ("surprisingly_beautiful", "story_beautiful_title", "story_beautiful_desc"),
+        ("people_and_inner_circle", "story_people_title", "story_people_desc"),
     ]
 
     story_map = {story["id"]: story for story in data["suggested_stories"]}
 
     story_cards = ""
-    for story_id, title, desc in story_defs:
+    for story_id, title_key, desc_key in story_defs:
         count = story_map.get(story_id, {}).get("count", 0)
         story_cards += f"""
         <article class="story-card">
           <div class="story-count">{num(count)}</div>
-          <h3>{esc(title)}</h3>
-          <p>{esc(desc)}</p>
+          <h3>{dashboard_label(title_key)}</h3>
+          <p>{dashboard_label(desc_key)}</p>
         </article>
         """
 
@@ -509,16 +536,16 @@ def render_dashboard(theme, lang, profile, data, excludes=None):
 <body class="theme-{theme} profile-{profile}">
   <div class="shell">
     <header class="hero">
-      <div class="brand">agrandiz <span>{esc(t['brand_tag'])}</span></div>
+      <div class="brand">agrandiz <span>{dashboard_label('brand_tag')}</span></div>
       {language_switcher_html()}
       {app_nav_html(active="dashboard", theme=theme, profile=profile)}
       <div class="hero-copy">
-        <h1>{esc(t['hero_title'])}</h1>
-        <p>{esc(t['hero_subtitle'])}</p>
+        <h1>{dashboard_label('hero_title')}</h1>
+        <p>{dashboard_label('hero_subtitle')}</p>
         <div class="meta-line">
-          {t['theme']}: <strong>{theme}</strong> ·
-          {t['platform']}: <strong>{profile}</strong> ·
-          {t['generated']}: <strong>{esc(data["generated_at"])}</strong>
+          {dashboard_label('theme')}: <strong>{theme}</strong> ·
+          {dashboard_label('platform')}: <strong>{profile}</strong> ·
+          {dashboard_label('generated')}: <strong>{esc(data["generated_at"])}</strong>
         </div>
       </div>
     </header>
@@ -526,91 +553,91 @@ def render_dashboard(theme, lang, profile, data, excludes=None):
     <section class="metrics-grid">
       <article class="metric-card metric-primary">
         <div class="metric-value">{num(m['total'])}</div>
-        <div class="metric-label">{t['memories_found']}</div>
+        <div class="metric-label">{dashboard_label('memories_found')}</div>
       </article>
 
       <article class="metric-card">
         <div class="metric-value">{num(m['local'])}</div>
-        <div class="metric-label">{t['available_local']}</div>
+        <div class="metric-label">{dashboard_label('available_local')}</div>
       </article>
 
       <article class="metric-card">
         <div class="metric-value">{num(m['icloud'])}</div>
-        <div class="metric-label">{t['icloud_only']}</div>
+        <div class="metric-label">{dashboard_label('icloud_only')}</div>
       </article>
 
       <article class="metric-card">
         <div class="metric-value">{num(m['whatsapp'])}</div>
-        <div class="metric-label">{t['whatsapp_memories']}</div>
+        <div class="metric-label">{dashboard_label('whatsapp_memories')}</div>
       </article>
 
       <article class="metric-card">
         <div class="metric-value">{num(m['child'])}</div>
-        <div class="metric-label">{t['child_moments']}</div>
+        <div class="metric-label">{dashboard_label('child_moments')}</div>
       </article>
 
       <article class="metric-card">
         <div class="metric-value">{num(m['people'])}</div>
-        <div class="metric-label">{t['people_photos']}</div>
+        <div class="metric-label">{dashboard_label('people_photos')}</div>
       </article>
 
       <article class="metric-card">
         <div class="metric-value">{num(m['favorites'])}</div>
-        <div class="metric-label">{t['favorites']}</div>
+        <div class="metric-label">{dashboard_label('favorites')}</div>
       </article>
 
       <article class="metric-card">
         <div class="metric-value">{num(m['screenshots'])}</div>
-        <div class="metric-label">{t['screenshots']}</div>
+        <div class="metric-label">{dashboard_label('screenshots')}</div>
       </article>
     </section>
 
     <section class="info-strip">
       <div class="panel">
-        <h2>{esc(t['top_labels'])}</h2>
+        <h2>{dashboard_label('top_labels')}</h2>
         <div class="label-pills">{labels_html}</div>
       </div>
-      <div class="panel small-note">{esc(t['apple_note'])}</div>
+      <div class="panel small-note">{dashboard_label('apple_note')}</div>
     </section>
 
     <section>
-      <h2 class="section-title">{esc(t['suggested_stories'])}</h2>
+      <h2 class="section-title">{dashboard_label('suggested_stories')}</h2>
       <div class="stories-grid">{story_cards}</div>
     </section>
 
     {curation_panel_html(t['curation_title'], t['curation_desc'], t['copy_exclude'], t['clear_excludes'])}
 
     <section>
-      <h2 class="section-title">{esc(t['top_scored'])}</h2>
+      <h2 class="section-title">{dashboard_label('top_scored')}</h2>
       <div class="photo-grid">{top_scored_html}</div>
     </section>
 
     <section>
-      <h2 class="section-title">{esc(t['top_local'])}</h2>
+      <h2 class="section-title">{dashboard_label('top_local')}</h2>
       <div class="photo-grid compact">{top_local_html}</div>
     </section>
 
     <section>
-      <h2 class="section-title">{esc(t['cloud_only_highlights'])}</h2>
+      <h2 class="section-title">{dashboard_label('cloud_only_highlights')}</h2>
       <div class="photo-grid compact">{top_cloud_html}</div>
     </section>
   </div>
 
 <section class="section generated-content">
   <div class="section-head">
-    <h2>Generated content</h2>
-    <p>Open the generated story outputs from this dashboard.</p>
+    <h2>{dashboard_label('generated_content')}</h2>
+    <p>{dashboard_label('generated_content_desc')}</p>
   </div>
   <div class="story-grid">
     <a class="portal-card" href="stories.apple.apple_icloud.html">
-      <div class="eyebrow">Story Gallery</div>
-      <h3>Open Story Gallery</h3>
-      <p>Review curated story candidates, grouped moments, and exclusions.</p>
+      <div class="eyebrow">{dashboard_label('story_gallery_eyebrow')}</div>
+      <h3>{dashboard_label('story_gallery_title')}</h3>
+      <p>{dashboard_label('story_gallery_desc')}</p>
     </a>
     <a class="portal-card" href="family-timeline.apple.apple_icloud.html">
-      <div class="eyebrow">Family Timeline</div>
-      <h3>Open Family Timeline</h3>
-      <p>Browse the year-by-year memory timeline.</p>
+      <div class="eyebrow">{dashboard_label('family_timeline_eyebrow')}</div>
+      <h3>{dashboard_label('family_timeline_title')}</h3>
+      <p>{dashboard_label('family_timeline_desc')}</p>
     </a>
   </div>
 </section>
