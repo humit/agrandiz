@@ -19,6 +19,13 @@ def esc_attr(value):
     return html.escape(str(value), quote=True) if value is not None else ""
 
 
+def lang_spans(tr_text, en_text):
+    return (
+        f'<span data-lang="tr">{esc(tr_text)}</span>'
+        f'<span data-lang="en">{esc(en_text)}</span>'
+    )
+
+
 def _normalize(value):
     if value is None:
         return ""
@@ -122,7 +129,9 @@ def render_curation_card(moment, lang, extra_badges=None):
     before the standard preview/original/score badges.
     """
     item = moment.get("representative", {})
-    caption = item.get("caption") or ("Açıklama yok" if lang == "tr" else "No caption")
+    raw_caption = item.get("caption")
+    caption_text = raw_caption or ("Açıklama yok" if lang == "tr" else "No caption")
+    caption_html = esc(raw_caption) if raw_caption else lang_spans("Açıklama yok", "No caption")
     score = f"{float(item.get('score') or 0):.3f}"
 
     labels = "".join(f'<span class="chip">{esc(label)}</span>' for label in (item.get("labels") or [])[:6])
@@ -133,24 +142,15 @@ def render_curation_card(moment, lang, extra_badges=None):
         if b
     )
 
-    if lang == "tr":
-        original = "Orijinal iCloud'da" if item.get("original_status") == "icloud" else "Orijinal lokal"
-        album_label = "Albüm"
-        moment_label = "Moment"
-        similar_label = "benzer kare"
-        variants_label = "Varyantlar"
-        exclude_label = "Exclude"
-        exclude_title = "Bu momenti gizle / exclude listesine ekle"
-        preview_label = "Preview hazır"
+    if item.get("original_status") == "icloud":
+        original_html = lang_spans("Orijinal iCloud'da", "Original in iCloud")
     else:
-        original = "Original in iCloud" if item.get("original_status") == "icloud" else "Original local"
-        album_label = "Album"
-        moment_label = "Moment"
-        similar_label = "similar shots"
-        variants_label = "Variants"
-        exclude_label = "Exclude"
-        exclude_title = "Hide this moment / add to exclude list"
-        preview_label = "Preview ready"
+        original_html = lang_spans("Orijinal lokal", "Original local")
+
+    album_label_html = lang_spans("Albüm", "Album")
+    preview_label_html = lang_spans("Preview hazır", "Preview ready")
+    variants_label_html = lang_spans("Varyantlar", "Variants")
+    exclude_title = "Bu momenti gizle / exclude listesine ekle" if lang == "tr" else "Hide this moment / add to exclude list"
 
     variant_count = int(moment.get("variant_count", 1) or 1)
     frames = frames_for_moment(moment)
@@ -161,7 +161,11 @@ def render_curation_card(moment, lang, extra_badges=None):
 
     variant_badge = ""
     if variant_count > 1:
-        variant_badge = f'<span class="mini-badge moment-badge">{moment_label} · {variant_count} {similar_label}</span>'
+        variant_badge = (
+            '<span class="mini-badge moment-badge">'
+            f'{lang_spans(f"Moment · {variant_count} benzer kare", f"Moment · {variant_count} similar shots")}'
+            '</span>'
+        )
 
     variant_list = ""
     if variant_count > 1:
@@ -175,7 +179,7 @@ def render_curation_card(moment, lang, extra_badges=None):
         if lines:
             variant_list = f"""
             <details class="variants">
-              <summary>{variants_label}</summary>
+              <summary>{variants_label_html}</summary>
               <ul>{''.join(lines)}</ul>
             </details>
             """
@@ -187,25 +191,25 @@ def render_curation_card(moment, lang, extra_badges=None):
       data-exclude-payload="{payload_json}"
     >
       <div class="story-photo-img">
-        <img src="{esc(item.get('thumb'))}" alt="{esc(caption)}" loading="lazy">
-        <div class="sequence-hint">{esc('micro sequence' if lang == 'en' else 'micro sequence')}</div>
+        <img src="{esc(item.get('thumb'))}" alt="{esc(caption_text)}" loading="lazy">
+        <div class="sequence-hint">micro sequence</div>
       </div>
 
       <div class="story-photo-meta">
         <div class="photo-badges">
-          {extra_badges_html}<span class="mini-badge">{esc(preview_label)}</span>
-          <span class="mini-badge">{esc(original)}</span>
+          {extra_badges_html}<span class="mini-badge">{preview_label_html}</span>
+          <span class="mini-badge">{original_html}</span>
           <span class="mini-badge">Score {score}</span>
           {variant_badge}
         </div>
 
-        <div class="photo-caption">{esc(caption)}</div>
-        <div class="photo-sub">{album_label}: {esc(item.get('album') or '-')} · {esc(item.get('date') or '')}</div>
+        <div class="photo-caption">{caption_html}</div>
+        <div class="photo-sub">{album_label_html}: {esc(item.get('album') or '-')} · {esc(item.get('date') or '')}</div>
 
         <div class="chips">{terms}{labels}</div>
 
         <div class="moment-actions">
-          <button class="exclude-button" type="button" title="{esc_attr(exclude_title)}">{esc(exclude_label)}</button>
+          <button class="exclude-button" type="button" title="{esc_attr(exclude_title)}">Exclude</button>
         </div>
 
         {variant_list}
@@ -362,11 +366,11 @@ def curation_panel_html(panel_title, panel_desc, copy_label, reset_label):
     """Return the curation tools panel HTML."""
     return f"""
     <section class="curation-panel">
-      <h2>{esc(panel_title)}</h2>
+      <h2 data-i18n="stories.curation_tools">{esc(panel_title)}</h2>
       <p data-i18n="stories.curation_desc">{esc(panel_desc)}</p>
       <div class="curation-actions">
-        <button id="copy-exclude-json" type="button">{esc(copy_label)}</button>
-        <button id="clear-excludes" type="button">{esc(reset_label)}</button>
+        <button id="copy-exclude-json" type="button" data-i18n="stories.copy_exclude_json">{esc(copy_label)}</button>
+        <button id="clear-excludes" type="button" data-i18n="stories.clear_excludes">{esc(reset_label)}</button>
       </div>
       <textarea id="exclude-json" spellcheck="false"></textarea>
     </section>"""

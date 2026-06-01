@@ -31,6 +31,21 @@ def load_json_file(path, default):
         return default
 
 
+def lang_spans(tr_text, en_text):
+    return (
+        f'<span data-lang="tr">{esc(tr_text)}</span>'
+        f'<span data-lang="en">{esc(en_text)}</span>'
+    )
+
+
+def story_lang_spans(story, tr_key, en_key):
+    return lang_spans(story.get(tr_key, ""), story.get(en_key, ""))
+
+
+def i18n_label(key, fallback):
+    return f'<span data-i18n="{esc_attr(key)}">{esc(fallback)}</span>'
+
+
 def filter_data(data, excludes):
     filtered = dict(data)
     filtered["generated_at"] = datetime.now().isoformat(timespec="seconds")
@@ -75,27 +90,6 @@ def filter_data(data, excludes):
 
 
 def render_story(story, lang):
-    title = story["title_tr"] if lang == "tr" else story["title_en"]
-    desc = story["desc_tr"] if lang == "tr" else story["desc_en"]
-    reel = story["reel_tr"] if lang == "tr" else story["reel_en"]
-
-    if lang == "tr":
-        score_label = "Hazırlık skoru"
-        moment_label = "moment"
-        source_label = "kaynak kare"
-        hidden_label = "gruplanan varyant"
-        excluded_label = "exclude edilen moment"
-        output_label = "Çıktı adayları"
-        reel_label = "Reel/Shorts fikri"
-    else:
-        score_label = "Readiness score"
-        moment_label = "moments"
-        source_label = "source items"
-        hidden_label = "grouped variants"
-        excluded_label = "excluded moments"
-        output_label = "Output candidates"
-        reel_label = "Reel/Shorts idea"
-
     outputs = "".join(f'<span class="output-chip">{esc(o)}</span>' for o in story.get("output_types", []))
     moments = "".join(render_curation_card(m, lang) for m in story.get("moments", [])[:20])
 
@@ -104,30 +98,30 @@ def render_story(story, lang):
       <div class="story-head">
         <div>
           <div class="story-emoji">{esc(story.get('emoji', '•'))}</div>
-          <h2>{esc(title)}</h2>
-          <p>{esc(desc)}</p>
+          <h2>{story_lang_spans(story, 'title_tr', 'title_en')}</h2>
+          <p>{story_lang_spans(story, 'desc_tr', 'desc_en')}</p>
         </div>
         <div class="story-score">
           <div class="score-number">{story.get('story_score')}</div>
-          <div class="score-label">{score_label}</div>
+          <div class="score-label" data-i18n="stories.preparation_score">Hazırlık skoru</div>
         </div>
       </div>
 
       <div class="story-stats">
-        <span>{story.get('moment_count', 0)} {moment_label}</span>
-        <span>{story.get('source_item_count', 0)} {source_label}</span>
-        <span>{story.get('hidden_variant_count', 0)} {hidden_label}</span>
-        <span>{story.get('excluded_moment_count', 0)} {excluded_label}</span>
+        <span>{story.get('moment_count', 0)} {i18n_label('stories.moments', 'moment')}</span>
+        <span>{story.get('source_item_count', 0)} {i18n_label('stories.source_items', 'kaynak kare')}</span>
+        <span>{story.get('hidden_variant_count', 0)} {i18n_label('stories.grouped_variants', 'gruplanan varyant')}</span>
+        <span>{story.get('excluded_moment_count', 0)} {i18n_label('stories.excluded_moments', 'exclude edilen moment')}</span>
         <span>{story.get('reel_structure', {}).get('duration', '')} · 9:16</span>
       </div>
 
       <div class="story-output">
-        <strong>{output_label}:</strong>
+        <strong data-i18n="stories.output_candidates">Çıktı adayları</strong><strong>:</strong>
         {outputs}
       </div>
 
       <div class="reel-idea">
-        <strong>{reel_label}:</strong> {esc(reel)}
+        <strong data-i18n="stories.reel_idea">Reel/Shorts fikri</strong><strong>:</strong> {story_lang_spans(story, 'reel_tr', 'reel_en')}
       </div>
 
       <div class="story-photo-grid">
@@ -376,19 +370,19 @@ def render_page(data, lang):
     <section class="story-summary">
       <article class="summary-card">
         <div class="value">{num(len(stories))}</div>
-        <div class="label">{esc(candidates_label)}</div>
+        <div class="label" data-i18n="stories.story_candidates">{esc(candidates_label)}</div>
       </article>
       <article class="summary-card">
         <div class="value">{num(total_moments)}</div>
-        <div class="label">{esc(moments_label)}</div>
+        <div class="label" data-i18n="stories.selected_moments">{esc(moments_label)}</div>
       </article>
       <article class="summary-card">
         <div class="value">{num(total_grouped)}</div>
-        <div class="label">{esc(grouped_label)}</div>
+        <div class="label" data-i18n="stories.grouped_variants">{esc(grouped_label)}</div>
       </article>
       <article class="summary-card">
         <div class="value">{num(total_excludes)}</div>
-        <div class="label">{esc(excluded_label)}</div>
+        <div class="label" data-i18n="stories.active_exclude_rules">{esc(excluded_label)}</div>
       </article>
     </section>
 
