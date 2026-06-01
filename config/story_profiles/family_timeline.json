@@ -168,8 +168,8 @@
     "user_overrides_source": true
   },
   "builder": {
-    "script": "build_family_timeline.py",
+    "script": "story_builder.py",
     "mode": "compatibility",
-    "note": "Temporary builder mapping until discovery/grouping/rendering are split into generic modules."
+    "note": "Generic story builder module used by the story pipeline."
   }
 }

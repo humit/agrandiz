@@ -18,12 +18,12 @@ from typing import Any
 from agrandiz_version import print_version
 from story_profile import load_story_profile
 from story_common import source_identity
-from build_family_timeline import run_family_timeline
+from story_builder import run_story_builder
 
 
 SUPPORTED_BUILDER_IDS = {
-    "family_timeline": "build_family_timeline.py",
-    "people_timeline": "build_family_timeline.py",
+    "family_timeline": "story_builder.py",
+    "people_timeline": "story_builder.py",
 }
 
 
@@ -35,8 +35,8 @@ def builder_for_profile(profile: dict[str, Any]) -> str:
     """Return the builder script for a story profile.
 
     The current compatibility mapping intentionally routes timeline-like
-    profiles to build_family_timeline.py. Future refactor steps will replace this
-    with generic story_discover/story_group/story_render modules.
+    profiles to the generic story builder. Future refactor steps will replace this
+    with direct generic story_discover/story_group/story_render orchestration.
     """
 
     builder = profile.get("builder")
@@ -56,7 +56,7 @@ def builder_for_profile(profile: dict[str, Any]) -> str:
 
     layout = str(profile.get("layout") or "")
     if layout == "timeline":
-        return "build_family_timeline.py"
+        return "story_builder.py"
 
     raise SystemExit(
         "Unsupported story profile. Add a builder mapping or migrate this "
@@ -79,7 +79,7 @@ def run_builder(args: argparse.Namespace, profile: dict[str, Any]) -> int:
     if args.dry_run:
         print("Dry run direct call:")
         print(
-            "run_family_timeline("
+            "run_story_builder("
             f"db={args.db!r}, "
             f"config_path={args.profile!r}, "
             f"outdir={args.outdir!r}, "
@@ -91,10 +91,10 @@ def run_builder(args: argparse.Namespace, profile: dict[str, Any]) -> int:
         )
         return 0
 
-    if builder_script != "build_family_timeline.py":
+    if builder_script != "story_builder.py":
         raise SystemExit(f"Unsupported direct builder: {builder_script}")
 
-    run_family_timeline(
+    run_story_builder(
         db=args.db,
         config_path=args.profile,
         outdir=args.outdir,

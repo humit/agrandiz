@@ -56,7 +56,7 @@ def build_timeline(rows, config, thumbs_dir):
     }
 
 
-def run_family_timeline(
+def run_story_builder(
     *,
     db="cache/agrandiz.sqlite",
     config_path="config/family_timeline.json",
@@ -145,7 +145,7 @@ def main():
     parser.add_argument("--no-phash", action="store_true", help="Disable perceptual hash computation")
     args = parser.parse_args()
 
-    run_family_timeline(
+    run_story_builder(
         db=args.db,
         config_path=args.config,
         outdir=args.outdir,

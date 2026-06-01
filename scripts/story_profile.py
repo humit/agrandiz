@@ -26,7 +26,7 @@ def normalize_story_profile(raw: dict[str, Any], source_path: str | Path | None 
 
     This accepts both the old family_timeline.json shape and the new story profile
     shape. The returned dict includes a `selection_legacy` key so the current
-    build_family_timeline.py can continue using its existing matcher while the
+    the generic story builder can continue using the legacy matcher while the
     project migrates to generic filters.
     """
 
