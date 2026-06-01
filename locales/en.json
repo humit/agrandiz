@@ -81,5 +81,9 @@
   "web.generate_stories": "Generate Stories",
   "template.people_timeline": "People timeline",
   "template.people_timeline.desc": "Builds a timeline dashboard from people, family, birthday, school and everyday-life signals.",
-  "story.profile.source_metadata_policy": "Source metadata policy"
+  "story.profile.source_metadata_policy": "Source metadata policy",
+  "nav.dashboard": "Dashboard",
+  "nav.stories": "Stories",
+  "nav.family_timeline": "Family Timeline",
+  "stories.brand_section": "story discovery"
 }
