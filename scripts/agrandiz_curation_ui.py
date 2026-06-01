@@ -115,14 +115,23 @@ def frames_for_moment(moment):
     return frames[:10]
 
 
-def render_curation_card(moment, lang):
-    """Render a single moment as a curation card article element."""
+def render_curation_card(moment, lang, extra_badges=None):
+    """Render a single moment as a curation card article element.
+
+    extra_badges: optional list of plain strings rendered as mini-badges
+    before the standard preview/original/score badges.
+    """
     item = moment.get("representative", {})
     caption = item.get("caption") or ("Açıklama yok" if lang == "tr" else "No caption")
     score = f"{float(item.get('score') or 0):.3f}"
 
     labels = "".join(f'<span class="chip">{esc(label)}</span>' for label in (item.get("labels") or [])[:6])
     terms = "".join(f'<span class="chip matched">{esc(term)}</span>' for term in (item.get("matched_terms") or [])[:4])
+    extra_badges_html = "".join(
+        f'<span class="mini-badge">{esc(b)}</span>'
+        for b in (extra_badges or [])
+        if b
+    )
 
     if lang == "tr":
         original = "Orijinal iCloud'da" if item.get("original_status") == "icloud" else "Orijinal lokal"
@@ -184,7 +193,7 @@ def render_curation_card(moment, lang):
 
       <div class="story-photo-meta">
         <div class="photo-badges">
-          <span class="mini-badge">{esc(preview_label)}</span>
+          {extra_badges_html}<span class="mini-badge">{esc(preview_label)}</span>
           <span class="mini-badge">{esc(original)}</span>
           <span class="mini-badge">Score {score}</span>
           {variant_badge}
