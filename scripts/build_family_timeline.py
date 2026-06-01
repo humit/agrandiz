@@ -11,6 +11,14 @@ from datetime import datetime
 from pathlib import Path
 from urllib.parse import quote
 
+from agrandiz_i18n import i18n_js, language_switcher_html
+from story_profile import (
+    legacy_selection_config,
+    load_story_profile,
+    profile_output_html,
+    profile_output_json,
+)
+
 try:
     from PIL import Image
     import imagehash
@@ -581,9 +589,21 @@ def render_moment(moment, lang):
     """
 
 
-def render_html(timeline, config, lang):
-    title = config["title_tr"] if lang == "tr" else config["title_en"]
-    subtitle = config["subtitle_tr"] if lang == "tr" else config["subtitle_en"]
+def render_html(timeline, config, lang, profile=None):
+    profile = profile or {}
+    i18n = profile.get("i18n") or {}
+    legacy_titles = profile.get("legacy_titles") or {}
+
+    title_key = i18n.get("title", "family.page_title")
+    subtitle_key = i18n.get("subtitle", "family.subtitle")
+    eyebrow_key = i18n.get("eyebrow", "family.timeline")
+
+    if lang == "tr":
+        title = legacy_titles.get("title_tr") or config.get("title_tr") or "Çocukların Büyüme Hikâyesi"
+        subtitle = legacy_titles.get("subtitle_tr") or config.get("subtitle_tr") or ""
+    else:
+        title = legacy_titles.get("title_en") or config.get("title_en") or "Children's Growing-Up Story"
+        subtitle = legacy_titles.get("subtitle_en") or config.get("subtitle_en") or ""
 
     if lang == "tr":
         story_label = "aile zaman çizelgesi"
@@ -769,30 +789,31 @@ def render_html(timeline, config, lang):
 <body class="theme-apple profile-apple_icloud">
   <div class="shell">
     <header class="hero">
-      <div class="brand">agrandiz <span>{esc(story_label)}</span></div>
+      <div class="brand">agrandiz <span data-i18n="{esc_attr(eyebrow_key)}">{esc(story_label)}</span></div>
+      {language_switcher_html()}
       <div class="hero-copy">
-        <h1>{esc(title)}</h1>
-        <p>{esc(subtitle)}</p>
-        <div class="meta-line">{esc(note)}</div>
+        <h1 data-i18n="{esc_attr(title_key)}">{esc(title)}</h1>
+        <p data-i18n="{esc_attr(subtitle_key)}">{esc(subtitle)}</p>
+        <div class="meta-line" data-i18n="family.note">{esc(note)}</div>
       </div>
     </header>
 
     <section class="timeline-summary">
       <article class="summary-card">
         <div class="value">{num(len(timeline['years']))}</div>
-        <div class="label">{esc(years_label)}</div>
+        <div class="label" data-i18n="family.years">{esc(years_label)}</div>
       </article>
       <article class="summary-card">
         <div class="value">{num(timeline['source_item_count'])}</div>
-        <div class="label">{esc(source_label)}</div>
+        <div class="label" data-i18n="family.candidate_photos">{esc(source_label)}</div>
       </article>
       <article class="summary-card">
         <div class="value">{num(timeline['selected_moment_count'])}</div>
-        <div class="label">{esc(moment_label)}</div>
+        <div class="label" data-i18n="family.selected_moments">{esc(moment_label)}</div>
       </article>
       <article class="summary-card">
         <div class="value">{num(timeline['grouped_variant_count'])}</div>
-        <div class="label">{esc(grouped_label)}</div>
+        <div class="label" data-i18n="family.grouped_variants">{esc(grouped_label)}</div>
       </article>
     </section>
 
@@ -843,6 +864,7 @@ def render_html(timeline, config, lang):
       }});
     }});
   </script>
+  {i18n_js(default_lang=lang)}
 </body>
 </html>
 """
@@ -896,7 +918,8 @@ def main():
     outdir.mkdir(parents=True, exist_ok=True)
     thumbs_dir.mkdir(parents=True, exist_ok=True)
 
-    config = load_config(args.config)
+    profile = load_story_profile(args.config)
+    config = legacy_selection_config(profile)
 
     if args.fast:
         config["disable_phash"] = True
@@ -920,12 +943,13 @@ def main():
 
     timeline = build_timeline(rows, config, thumbs_dir)
 
-    json_path = outdir / "family_timeline.json"
+    json_path = outdir / profile_output_json(profile)
     json_path.write_text(
         json.dumps(
             {
                 "generated_at": datetime.now().isoformat(timespec="seconds"),
                 "config": args.config,
+                "profile": profile,
                 "timeline": timeline
             },
             indent=2,
@@ -940,13 +964,12 @@ def main():
     print("selected_moment_count:", timeline["selected_moment_count"])
     print("grouped_variant_count:", timeline["grouped_variant_count"])
 
-    langs = ["tr", "en"] if args.lang == "both" else [args.lang]
-
-    for lang in langs:
-        html_text = render_html(timeline, config, lang)
-        html_path = outdir / "family-timeline.apple.apple_icloud.html"
-        html_path.write_text(html_text, encoding="utf-8")
-        print(f"Wrote {html_path}")
+    # Single canonical HTML file. Language switching is handled in-page via i18n.
+    default_lang = "tr" if args.lang == "both" else args.lang
+    html_text = render_html(timeline, config, default_lang, profile=profile)
+    html_path = outdir / profile_output_html(profile)
+    html_path.write_text(html_text, encoding="utf-8")
+    print(f"Wrote {html_path}")
 
     patch_portal_index(outdir)
 
