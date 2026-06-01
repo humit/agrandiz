@@ -8,6 +8,9 @@ import re
 from datetime import datetime
 from pathlib import Path
 
+from agrandiz_i18n import i18n_js, language_switcher_html
+from agrandiz_shell import APP_NAV_CSS, app_nav_html
+
 
 WORD_RE = re.compile(r"[a-z0-9]+(?:[-_][a-z0-9]+)?", re.IGNORECASE)
 
@@ -619,12 +622,15 @@ def render_page(data, lang):
     @media (max-width: 620px) {{
       .story-photo-grid {{ grid-template-columns: 1fr; }}
     }}
+{APP_NAV_CSS}
   </style>
 </head>
 <body class="theme-apple profile-apple_icloud">
   <div class="shell">
     <header class="hero">
       <div class="brand">agrandiz <span>moment grouping</span></div>
+      {language_switcher_html()}
+      {app_nav_html()}
       <div class="hero-copy">
         <h1>{esc(hero)}</h1>
         <p>{esc(subtitle)}</p>
@@ -648,6 +654,7 @@ def render_page(data, lang):
 
     {story_cards}
   </div>
+{i18n_js()}
 </body>
 </html>
 """

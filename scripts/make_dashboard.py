@@ -10,6 +10,9 @@ from collections import Counter
 from datetime import datetime
 from urllib.parse import quote
 
+from agrandiz_i18n import i18n_js, language_switcher_html
+from agrandiz_shell import app_nav_html
+
 
 TRANSLATIONS = {
     "tr": {
@@ -431,6 +434,8 @@ def render_dashboard(theme, lang, profile, data):
   <div class="shell">
     <header class="hero">
       <div class="brand">agrandiz <span>{esc(t['brand_tag'])}</span></div>
+      {language_switcher_html()}
+      {app_nav_html(active="dashboard", theme=theme, profile=profile)}
       <div class="hero-copy">
         <h1>{esc(t['hero_title'])}</h1>
         <p>{esc(t['hero_subtitle'])}</p>
@@ -532,6 +537,7 @@ def render_dashboard(theme, lang, profile, data):
   </div>
 </section>
 
+{i18n_js()}
 </body>
 </html>
 """

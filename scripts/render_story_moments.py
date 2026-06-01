@@ -6,6 +6,7 @@ import json
 from pathlib import Path
 from datetime import datetime
 from agrandiz_i18n import i18n_js, language_switcher_html
+from agrandiz_shell import APP_NAV_CSS, app_nav_html
 
 
 def esc(value):
@@ -671,29 +672,7 @@ def render_page(data, lang):
       }}
     }}
   
-    .app-nav {{
-      display: flex;
-      flex-wrap: wrap;
-      gap: 10px;
-      margin: 18px 0 0;
-    }}
-
-    .app-nav a {{
-      display: inline-flex;
-      align-items: center;
-      border-radius: 999px;
-      padding: 8px 12px;
-      background: rgba(255,255,255,.72);
-      border: 1px solid rgba(0,0,0,.08);
-      color: #0071e3;
-      font-weight: 650;
-      text-decoration: none;
-    }}
-
-    .app-nav a[aria-current="page"] {{
-      background: rgba(0,113,227,.10);
-      color: #1d1d1f;
-    }}
+{APP_NAV_CSS}
 
   </style>
 </head>
@@ -703,11 +682,7 @@ def render_page(data, lang):
     <header class="hero">
       <div class="brand">agrandiz <span data-i18n="stories.brand_section">story discovery</span></div>
       {language_switcher_html()}
-      <nav class="app-nav" aria-label="Agrandiz">
-        <a href="dashboard.apple.apple_icloud.html" data-i18n="nav.dashboard">Dashboard</a>
-        <a href="stories.apple.apple_icloud.html" aria-current="page" data-i18n="nav.stories">Stories</a>
-        <a href="family-timeline.apple.apple_icloud.html" data-i18n="nav.family_timeline">Family Timeline</a>
-      </nav>
+      {app_nav_html(active="stories")}
       <div class="hero-copy">
         <h1 data-i18n="stories.hero_title">{esc(hero)}</h1>
         <p data-i18n="stories.hero_subtitle">{esc(subtitle)}</p>

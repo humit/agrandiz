@@ -14,6 +14,7 @@ import json
 from typing import Any
 
 from agrandiz_i18n import i18n_js, language_switcher_html
+from agrandiz_shell import APP_NAV_CSS, app_nav_html
 
 
 def esc(value: Any) -> str:
@@ -293,6 +294,7 @@ def render_html(timeline, config, lang, profile=None):
         flex-direction: column;
       }}
     }}
+{APP_NAV_CSS}
   </style>
 </head>
 <body class="theme-apple profile-apple_icloud">
@@ -300,6 +302,7 @@ def render_html(timeline, config, lang, profile=None):
     <header class="hero">
       <div class="brand">agrandiz <span data-i18n="{esc_attr(eyebrow_key)}">{esc(story_label)}</span></div>
       {language_switcher_html()}
+      {app_nav_html(active="family_timeline")}
       <div class="hero-copy">
         <h1 data-i18n="{esc_attr(title_key)}">{esc(title)}</h1>
         <p data-i18n="{esc_attr(subtitle_key)}">{esc(subtitle)}</p>

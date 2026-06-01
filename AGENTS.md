@@ -193,10 +193,11 @@ Useful product features enabled by these signals:
 
 The immediate UI/UX roadmap is:
 
-1. Add the same `app-nav` used by the main stories page to `family-timeline.apple.apple_icloud.html`.
-2. Add `app-nav` and i18n infrastructure to `dashboard.apple.apple_icloud.html`.
-3. Bring `stories-raw.*` and `stories-moments.*` pages closer to the same nav/header structure.
-4. Then extract a shared app shell/template system.
+1. ✅ Add the same `app-nav` used by the main stories page to `family-timeline.apple.apple_icloud.html`.
+2. ✅ Add `app-nav` and i18n infrastructure to `dashboard.apple.apple_icloud.html`.
+3. ✅ Bring `stories-raw.*` and `stories-moments.*` pages closer to the same nav/header structure.
+4. ✅ Extract a shared app shell/template system (`agrandiz_shell.py`: `APP_NAV_CSS`, `app_nav_html`).
+5. Remove `--lang` CLI argument from all renderers once every page uses in-page i18n switching (currently `stories-raw.*` and `stories-moments.*` still generate separate per-lang files).
 
 Do not jump directly to a large shared template refactor unless explicitly requested. Prefer incremental patches.
 
