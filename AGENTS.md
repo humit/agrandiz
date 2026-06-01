@@ -20,6 +20,32 @@ The project should remain flexible enough to support many different story angles
 
 Agents must therefore avoid hard-coding product assumptions around family, children, or genealogy unless the task explicitly targets that profile. Prefer neutral concepts such as story, collection, subject, moment, memory, theme, candidate, timeline, and profile.
 
+
+## Canonical product framing from the project dossier
+
+The project dossier defines Agrandiz as a privacy-focused archive and curation service that turns meaningful stories, giftable memories, and period archives hidden inside personal photo libraries into digital and printable albums.
+
+The central promise is:
+
+```text
+Do not just delete photos. Find the invisible stories between them and turn digital clutter into durable personal memory.
+```
+
+Core product pillars:
+
+- Archive lightening: detect duplicate, low-value, WhatsApp-origin, screenshot, burst, low-resolution, or document-like candidates.
+- Story discovery: detect recurring people, places, periods, themes, objects, events, activities, and emotional patterns.
+- Durable output: produce web galleries, PDF albums, printable photo books, gift albums, collages, short videos, or digital legacy packages.
+
+Important distinction:
+
+```text
+Agrandiz is not primarily a photo cleaner.
+Agrandiz is a local-first memory curation and story discovery tool.
+```
+
+The product language should therefore emphasize review, curation, preservation, story discovery, and memory-making over deletion or cleanup.
+
 ## Platform strategy
 
 The current MVP is macOS-focused because Apple Photos plus `osxphotos` provides a rich, practical local metadata source. The immediate implementation may reference Apple/iCloud-specific generated outputs, filenames, and builders.
@@ -33,6 +59,19 @@ When designing architecture or naming abstractions:
 - Prefer extensible source concepts: `photo_source`, `library_source`, `metadata_provider`, `asset_provider`, `story_profile`.
 - Do not block the MVP by prematurely building full cross-platform support.
 - Do not make UI copy imply that the product only works for families or only for Apple Photos unless the page is explicitly Apple/MVP-specific.
+
+
+### MVP platform decision
+
+For v0.1, the product is deliberately narrow:
+
+```text
+macOS + Apple Photos + iCloud metadata + osxphotos
+```
+
+This is a product-speed decision, not a permanent product boundary. Apple Photos currently provides unusually rich local signals through `osxphotos`, including labels, captions, faces/person clusters, moments, albums, preview paths, cloud/local availability, and aesthetic scores. Use those signals aggressively for the Mac MVP, but keep generic concepts source-neutral so that later adapters can target Google Photos exports, Android/local folders, NAS/external disks, or other media catalogs.
+
+Do not build generic cross-platform support prematurely. Design seams for it.
 
 ## Current repository state
 
@@ -61,6 +100,95 @@ cache/story_candidates_grouped.json
 
 These filenames may still be Apple/iCloud-specific because the MVP data source is Apple Photos/iCloud. Treat them as current implementation details, not the final product taxonomy.
 
+
+## Current validated data and technical findings
+
+The first real `osxphotos` scan produced enough signal for a convincing MVP and video demo. Agents should treat these as useful constraints when designing UI copy, dashboard cards, and story discovery flows.
+
+Known scan environment:
+
+```text
+Python 3.12.13
+osxphotos 0.75.9
+Photos Library: local macOS Photos library
+Photos version: 10
+DB Version: 5001
+```
+
+Observed library scale and availability:
+
+```text
+Total assets: 14,286
+Photos: 11,465
+Videos: 2,821
+Cloud assets: 14,276
+Local originals available: about 888
+Stored only in iCloud / missing locally: about 13,398
+Favorites: 94
+Edited: 420
+Live Photos: 1,587
+Selfies: 520
+Screenshots: 200
+Detected faces: 17,618
+Assets with persons: 7,363
+Named persons: 0
+AI labels: about 13,488 assets
+Albums: 12
+Moments: 4,216
+```
+
+Story discovery signals already observed:
+
+```text
+WhatsApp assets: 7,215
+Child-labelled assets: 3,015
+People-labelled assets: 7,814
+Food-labelled assets: 925
+Tree-labelled assets: 417
+```
+
+Important implications:
+
+- The first real archive is heavily cloud-backed. Many strong story candidates can be discovered from metadata and preview paths before full-resolution originals are available.
+- UI must distinguish `Ready now` from `Needs download` instead of failing silently when an original is iCloud-only.
+- Named persons may be unavailable. Do not assume person names exist; support unnamed people, face clusters, labels, albums, moments, and user-guided enrichment.
+- WhatsApp is a major source. It is both noise and story material: possible low-value media, but also a strong source for gift albums and friend/community memories.
+- Location metadata may be sparse. Do not make location-based discovery a hard dependency for the first MVP.
+- Preview-first UI is a key MVP strategy. Use previews for discovery/review; require full-resolution originals only for print/export.
+
+### Apple Photos hidden signals
+
+`osxphotos` exposes Apple Photos analysis signals that can power MVP discovery without building a heavy custom AI pipeline first:
+
+```text
+photo.score.overall
+score.curation
+score.behavioral
+score.well_framed_subject
+score.pleasant_composition
+score.harmonious_color
+score.interesting_subject
+labels / labels_normalized
+ai_caption
+persons / person_info
+albums / album_info
+moment_info
+path_derivatives / preview paths
+ismissing / incloud / iscloudasset
+screenshot / selfie / live_photo / burst / panorama / slow_mo / time_lapse
+height / width / original_filesize / uti
+```
+
+Useful product features enabled by these signals:
+
+- Smart Best Photos: high-score images not marked as favorites.
+- Theme + Quality Albums: labels combined with aesthetic scores.
+- Surprisingly Beautiful: unexpected high-score images that users forgot.
+- Album Cover Candidates: high-quality, well-framed, theme-appropriate images.
+- Print-worthy Selection: good score, good resolution, not screenshot, not duplicate, local/available or downloadable.
+- Low-risk Review Queue: screenshot/source/score/favorite/album/missing signals combined into review candidates.
+- Cloud-aware Album Flow: preview-based review first, original download only at export/print stage.
+
 ## Current UI/UX direction
 
 The immediate UI/UX roadmap is:
@@ -73,6 +201,36 @@ The immediate UI/UX roadmap is:
 Do not jump directly to a large shared template refactor unless explicitly requested. Prefer incremental patches.
 
 Important: although the next UI task touches the Family Timeline page, do not reframe the whole application around family timelines. In the UI, navigation, and code abstractions, treat Family Timeline as one story profile among many possible profiles.
+
+
+### Current product/output roadmap
+
+The first product validation path is not full SaaS. The intended sequence is:
+
+```text
+1. Local read-only scan
+2. SQLite metadata cache
+3. Static local dashboard / gallery HTML
+4. Suggested story cards and preview-first galleries
+5. Web gallery output
+6. Video demo + landing/waitlist validation
+7. Later: local web wizard, PDF/print mockups, pilot workflows
+```
+
+Initial web pages mentioned in the dossier:
+
+```text
+Dashboard
+Timeline
+People / Subjects
+Suggested Stories
+Duplicate Review
+Album Builder
+Print Preview
+Export
+```
+
+For the current repo, static HTML in `cache/` is acceptable for MVP/video-demo speed. Later, this may evolve into FastAPI/Flask with a local wizard.
 
 ## Product language guidelines
 
@@ -109,6 +267,18 @@ Avoid making generic UI labels too specific:
 - Prefer: “Story dashboard” or “Memory dashboard”.
 - Avoid: “Children timeline engine” as a generic module name.
 - Prefer: “story profile”, “timeline profile”, or “subject timeline”.
+
+
+### Safer archive-lightening language
+
+Because photos are emotionally sensitive, avoid destructive wording in generic UI:
+
+```text
+Avoid: Delete, Trash, Junk, Bulk delete, Remove forever
+Prefer: Review, Not for Album, Low-value candidates, Archive out, Archive-light, Optimize storage, Needs review
+```
+
+Never make the product appear to automatically delete, move, upload, or rewrite the user’s photos. The default posture is recommendation plus human approval.
 
 ## Story profiles and flexibility
 
@@ -283,6 +453,15 @@ Agents must not:
 
 Prefer local-only tooling and static output.
 
+
+Privacy-specific UX requirements:
+
+- State that the MVP does not connect to the user’s iCloud account.
+- State that photos are not uploaded to an external service.
+- State that the local Photos library is analyzed read-only.
+- Do not show sharing links by default for sensitive/community archives.
+- For sensitive story profiles, consider face blurring, EXIF/location stripping, private archive mode, and export-time privacy warnings.
+
 ## Dependency policy
 
 Before adding a dependency, justify why existing Python/HTML/CSS/JS cannot reasonably do the job.
@@ -307,6 +486,49 @@ For current UI/UX work:
 - Avoid over-styling thumbnails in a way that hides the actual photo content.
 - Keep dark/light visual contrast readable.
 - Support generic story exploration, not only family archive browsing.
+
+
+### Apple-feel UI direction
+
+For the Mac MVP, the desired interface feeling is clean, calm, and Apple-adjacent:
+
+- soft white/light gray backgrounds unless a page already has a dark visual system;
+- large photo cards and generous spacing;
+- rounded cards and simple hierarchy;
+- few but meaningful metrics;
+- calm animations, no noisy gamification;
+- review-oriented language instead of alarmist cleanup warnings;
+- privacy reassurance without overwhelming the user.
+
+Recommended dashboard cards from the first real scan include:
+
+```text
+14,286 memories found
+888 available on this Mac
+13,398 stored only in iCloud
+7,215 WhatsApp memories
+3,015 child-related moments
+7,814 people photos
+925 food/table memories
+417 tree/nature candidates
+94 favorites
+200 screenshots
+1,587 live photos
+```
+
+Recommended initial story cards include:
+
+```text
+WhatsApp Memories
+Childhood Moments
+People & Family Archive
+Food, Tables & Gatherings
+Trees & Outdoor Days
+Surprisingly Beautiful
+Cloud-only Highlights
+```
+
+Keep these cards configurable and source-driven; do not bake these exact numbers into source code except in demo/sample fixtures.
 
 ## Commit message style
 
@@ -346,6 +568,32 @@ Validated:
 Follow-up:
 - Dashboard still needs app-nav + i18n scaffolding.
 ```
+
+
+## Landing/demo positioning notes
+
+`agrandiz.org` should initially be understood as a landing page plus demo portal, not a mature hosted SaaS product.
+
+Landing page responsibilities:
+
+- explain the photo-overload and memory-preservation problem;
+- show the video MVP/demo;
+- collect waitlist interest;
+- communicate local-first and privacy-first trust messages;
+- make the Mac Photos/iCloud MVP scope clear.
+
+Demo portal responsibilities:
+
+- show a realistic local dashboard example;
+- show sample story cards and preview-first gallery flows;
+- eventually evolve into a local wizard/review interface.
+
+Validation goals before paid pilots:
+
+- waitlist signups;
+- users asking “can you do this for my archive?”;
+- comments/questions about privacy and trust;
+- visible interest in family albums, gift albums, WhatsApp memories, web galleries, or digital legacy packages.
 
 ## Current next recommended task
 
