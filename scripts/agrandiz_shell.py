@@ -37,6 +37,6 @@ def app_nav_html(active=None, theme="apple", profile="apple_icloud"):
         f'<nav class="app-nav" aria-label="Agrandiz">\n'
         f'        <a href="dashboard.{theme}.{profile}.html"{cur("dashboard")} data-i18n="nav.dashboard">Dashboard</a>\n'
         f'        <a href="stories.{theme}.{profile}.html"{cur("stories")} data-i18n="nav.stories">Stories</a>\n'
-        f'        <a href="family-timeline.{theme}.{profile}.html"{cur("family_timeline")} data-i18n="nav.family_timeline">Family Timeline</a>\n'
+        f'        <a href="family-timeline.{theme}.{profile}.html"{cur("family_timeline")} data-i18n="nav.timeline">Timeline</a>\n'
         f'      </nav>'
     )
