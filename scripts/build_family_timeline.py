@@ -16,6 +16,11 @@ from story_common import (
     profile_filter_terms,
     source_identity,
 )
+from story_discover import (
+    discover_items,
+    fetch_rows as fetch_story_rows,
+    phash_available,
+)
 from story_profile import (
     legacy_selection_config,
     load_story_profile,
@@ -482,21 +487,8 @@ def select_year_moments(moments, config):
 
 
 def build_timeline(rows, config, thumbs_dir):
-    use_phash = Image is not None and imagehash is not None and not config.get("disable_phash", False)
-
-    items = []
-
-    for row in rows:
-        if not row_matches(row, config):
-            continue
-
-        item = build_item(row, thumbs_dir, use_phash)
-        if item:
-            items.append(item)
-
-        max_candidates = config.get("max_candidates")
-        if max_candidates and len(items) >= int(max_candidates):
-            break
+    use_phash = phash_available() and not config.get("disable_phash", False)
+    items = discover_items(rows, config, thumbs_dir, use_phash=use_phash)
 
     moments = cluster_items(items, config)
     by_year = select_year_moments(moments, config)
@@ -942,7 +934,7 @@ def main():
 
     conn = sqlite3.connect(args.db)
     conn.row_factory = sqlite3.Row
-    rows = fetch_rows(conn)
+    rows = fetch_story_rows(conn)
     conn.close()
 
     timeline = build_timeline(rows, config, thumbs_dir)
