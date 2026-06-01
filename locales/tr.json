@@ -85,5 +85,20 @@
   "nav.dashboard": "Dashboard",
   "nav.stories": "Hikâyeler",
   "nav.family_timeline": "Aile Zaman Çizelgesi",
-  "stories.brand_section": "hikâye keşfi"
+  "stories.brand_section": "hikâye keşfi",
+  "raw.page_title": "agrandiz ham hikâye keşfi",
+  "raw.hero_title": "Daha temiz albüm ve Reels/Shorts adayları",
+  "raw.hero_subtitle": "Config-driven story engine, exact token matching, near-duplicate cleanup ve cross-story diversity ile üretilmiş ikinci keşif çıktısı.",
+  "raw.note": "Bu sayfa orijinalleri indirmeden, mevcut preview cache üzerinden oluşturuldu.",
+  "raw.back": "Demo portalına dön",
+  "raw.candidates": "hikâye adayı",
+  "raw.previews": "seçili preview",
+  "raw.downloaded": "indirilen orijinal",
+  "moments.page_title": "agrandiz moment gruplama",
+  "moments.hero_title": "Moment bazlı albüm ve Reels/Shorts adayları",
+  "moments.hero_subtitle": "Ardışık çekilmiş, gözle çok benzer kareler tek bir moment altında gruplanır; sadece en iyi temsilci gösterilir.",
+  "moments.back": "Demo portalına dön",
+  "moments.candidates": "hikâye adayı",
+  "moments.selected": "seçili moment",
+  "moments.variants": "gruplanan varyant"
 }

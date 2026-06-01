@@ -11,6 +11,9 @@ from datetime import datetime
 from pathlib import Path
 from urllib.parse import quote
 
+from agrandiz_i18n import i18n_js, language_switcher_html
+from agrandiz_shell import APP_NAV_CSS, app_nav_html
+
 try:
     from PIL import Image
     import imagehash
@@ -470,83 +473,72 @@ def build_stories(rows, config, thumbs_dir):
     return stories
 
 
-def render_item(item, lang):
+def render_item(item):
     labels = "".join(f'<span class="chip">{esc(label)}</span>' for label in item.get("labels", [])[:6])
     terms = "".join(f'<span class="chip matched">{esc(term)}</span>' for term in item.get("matched_terms", [])[:4])
 
     score = f"{float(item['score']):.3f}" if item.get("score") is not None else "-"
-    caption = item.get("caption") or ("Açıklama yok" if lang == "tr" else "No caption")
-    album_label = "Albüm" if lang == "tr" else "Album"
-
-    if lang == "tr":
-        original = "Orijinal iCloud’da" if item["original_status"] == "icloud" else "Orijinal lokal"
-        preview = "Preview hazır"
-    else:
-        original = "Original in iCloud" if item["original_status"] == "icloud" else "Original local"
-        preview = "Preview ready"
+    caption_text = esc(item.get("caption") or "")
+    caption_display = caption_text if caption_text else "<span data-i18n=\"common.no_caption\">No caption</span>"
+    caption_alt = item.get("caption") or ""
+    original_key = "common.original_icloud" if item["original_status"] == "icloud" else "common.original_local"
+    original_fallback = "Original in iCloud" if item["original_status"] == "icloud" else "Original local"
 
     return f"""
     <article class="story-photo">
       <div class="story-photo-img">
-        <img src="{esc(item['thumb'])}" alt="{esc(caption)}" loading="lazy">
+        <img src="{esc(item['thumb'])}" alt="{esc(caption_alt)}" loading="lazy">
       </div>
       <div class="story-photo-meta">
         <div class="photo-badges">
-          <span class="mini-badge">{esc(preview)}</span>
-          <span class="mini-badge">{esc(original)}</span>
+          <span class="mini-badge" data-i18n="common.preview_ready">Preview ready</span>
+          <span class="mini-badge" data-i18n="{original_key}">{original_fallback}</span>
           <span class="mini-badge">Score {score}</span>
         </div>
-        <div class="photo-caption">{esc(caption)}</div>
-        <div class="photo-sub">{album_label}: {esc(item.get('album') or '-')} · {esc(item.get('date') or '')}</div>
+        <div class="photo-caption">{caption_display}</div>
+        <div class="photo-sub"><span data-i18n="common.album">Album</span>: {esc(item.get('album') or '-')} · {esc(item.get('date') or '')}</div>
         <div class="chips">{terms}{labels}</div>
       </div>
     </article>
     """
 
 
-def render_story_card(story, lang):
-    title = story["title_tr"] if lang == "tr" else story["title_en"]
-    desc = story["desc_tr"] if lang == "tr" else story["desc_en"]
-    reel = story["reel_tr"] if lang == "tr" else story["reel_en"]
-
-    score_label = "Hazırlık skoru" if lang == "tr" else "Readiness score"
-    count_label = "kare" if lang == "tr" else "items"
-    local_label = "orijinal lokal" if lang == "tr" else "original local"
-    icloud_label = "orijinal iCloud’da" if lang == "tr" else "original in iCloud"
-    output_label = "Çıktı adayları" if lang == "tr" else "Output candidates"
-    reel_label = "Reel/Shorts fikri" if lang == "tr" else "Reel/Shorts idea"
+def render_story_card(story):
+    title = f'<span data-lang="tr">{esc(story["title_tr"])}</span><span data-lang="en">{esc(story["title_en"])}</span>'
+    desc = f'<span data-lang="tr">{esc(story["desc_tr"])}</span><span data-lang="en">{esc(story["desc_en"])}</span>'
+    reel = f'<span data-lang="tr">{esc(story["reel_tr"])}</span><span data-lang="en">{esc(story["reel_en"])}</span>'
 
     outputs = "".join(f'<span class="output-chip">{esc(o)}</span>' for o in story["output_types"])
-    thumbs = "".join(render_item(item, lang) for item in story["items"][:12])
+    thumbs = "".join(render_item(item) for item in story["items"][:12])
 
     return f"""
     <section class="story-section" id="{esc(story['id'])}">
       <div class="story-head">
         <div>
           <div class="story-emoji">{esc(story['emoji'])}</div>
-          <h2>{esc(title)}</h2>
-          <p>{esc(desc)}</p>
+          <h2>{title}</h2>
+          <p>{desc}</p>
         </div>
         <div class="story-score">
           <div class="score-number">{story['story_score']}</div>
-          <div class="score-label">{score_label}</div>
+          <div class="score-label" data-i18n="common.readiness_score">Readiness score</div>
         </div>
       </div>
 
       <div class="story-stats">
-        <span>{story['item_count']} {count_label}</span>
-        <span>{story['original_local_count']} {local_label}</span>
-        <span>{story['original_icloud_count']} {icloud_label}</span>
+        <span>{story['item_count']} <span data-i18n="common.source_items">source items</span></span>
+        <span>{story['original_local_count']} <span data-i18n="common.original_local">original local</span></span>
+        <span>{story['original_icloud_count']} <span data-i18n="common.original_icloud">original in iCloud</span></span>
         <span>{story['reel_structure']['duration']} · {story['reel_structure']['format']}</span>
       </div>
 
       <div class="story-output">
-        <strong>{output_label}:</strong>
+        <strong data-i18n="common.output_candidates">Output candidates</strong>:
         {outputs}
       </div>
 
       <div class="reel-idea">
-        <strong>{reel_label}:</strong> {esc(reel)}
+        <strong data-i18n="common.reel_idea">Reel/Shorts idea</strong>: {reel}
       </div>
 
       <div class="story-photo-grid">
@@ -556,34 +548,15 @@ def render_story_card(story, lang):
     """
 
 
-def render_page(stories, lang, config_path):
-    if lang == "tr":
-        title = "agrandiz ham hikâye keşfi"
-        hero = "Daha temiz albüm ve Reels/Shorts adayları"
-        subtitle = "Config-driven story engine, exact token matching, near-duplicate cleanup ve cross-story diversity ile üretilmiş ikinci keşif çıktısı."
-        summary = "Bu sayfa orijinalleri indirmeden, mevcut preview cache üzerinden oluşturuldu."
-        back = "Demo portalına dön"
-        candidates_label = "story adayı"
-        previews_label = "seçili preview"
-        downloaded_label = "indirilen orijinal"
-    else:
-        title = "agrandiz raw story discovery"
-        hero = "Cleaner album and Reels/Shorts candidates"
-        subtitle = "Second discovery output generated with config-driven story rules, exact token matching, near-duplicate cleanup and cross-story diversity."
-        summary = "This page was generated from the preview cache without downloading originals."
-        back = "Back to demo portal"
-        candidates_label = "story candidates"
-        previews_label = "selected previews"
-        downloaded_label = "originals downloaded"
-
-    story_cards = "\n".join(render_story_card(story, lang) for story in stories)
+def render_page(stories, config_path):
+    story_cards = "\n".join(render_story_card(story) for story in stories)
 
     return f"""<!doctype html>
-<html lang="{lang}">
+<html lang="tr">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>{esc(title)}</title>
+  <title data-i18n="raw.page_title">agrandiz raw story discovery</title>
   <link rel="stylesheet" href="../themes/apple.css">
   <style>
     .story-summary {{
@@ -739,38 +712,42 @@ def render_page(stories, lang, config_path):
     @media (max-width: 620px) {{
       .story-photo-grid {{ grid-template-columns: 1fr; }}
     }}
+{APP_NAV_CSS}
   </style>
 </head>
 <body class="theme-apple profile-apple_icloud">
   <div class="shell">
     <header class="hero">
-      <div class="brand">agrandiz <span>raw story discovery</span></div>
+      <div class="brand">agrandiz <span data-i18n="raw.hero_title">raw story discovery</span></div>
+      {language_switcher_html()}
+      {app_nav_html()}
       <div class="hero-copy">
-        <h1>{esc(hero)}</h1>
-        <p>{esc(subtitle)}</p>
-        <div class="meta-line">{esc(summary)} · Config: <strong>{esc(config_path)}</strong></div>
+        <h1 data-i18n="raw.hero_title">Cleaner album and Reels/Shorts candidates</h1>
+        <p data-i18n="raw.hero_subtitle">Second discovery output generated with config-driven story rules, exact token matching, near-duplicate cleanup and cross-story diversity.</p>
+        <div class="meta-line"><span data-i18n="raw.note">This page was generated from the preview cache without downloading originals.</span> · Config: <strong>{esc(config_path)}</strong></div>
       </div>
     </header>
 
     <section class="story-summary">
       <article class="summary-card">
         <div class="value">{num(len(stories))}</div>
-        <div class="label">{esc(candidates_label)}</div>
+        <div class="label" data-i18n="raw.candidates">story candidates</div>
       </article>
       <article class="summary-card">
         <div class="value">{num(sum(s['item_count'] for s in stories))}</div>
-        <div class="label">{esc(previews_label)}</div>
+        <div class="label" data-i18n="raw.previews">selected previews</div>
       </article>
       <article class="summary-card">
         <div class="value">0</div>
-        <div class="label">{esc(downloaded_label)}</div>
+        <div class="label" data-i18n="raw.downloaded">originals downloaded</div>
       </article>
     </section>
 
     {story_cards}
 
-    <a class="back-link" href="dashboard.apple.apple_icloud.html">← {esc(back)}</a>
+    <a class="back-link" href="dashboard.apple.apple_icloud.html">← <span data-i18n="raw.back">Back to demo portal</span></a>
   </div>
+{i18n_js()}
 </body>
 </html>
 """
@@ -784,20 +761,14 @@ def write_index_links():
     text = p.read_text()
 
     insert = '''
-      <a class="portal-card" href="stories-raw.tr.apple.apple_icloud.html">
-        <div class="eyebrow">Türkçe · Raw Story Discovery</div>
-        <h2>Daha Temiz Hikâye Adayları</h2>
-        <p>Config-driven, daha sıkı eşleşme ve duplicate temizliği ile üretilen albüm/reel adayları.</p>
-      </a>
-
-      <a class="portal-card" href="stories-raw.en.apple.apple_icloud.html">
-        <div class="eyebrow">English · Raw Story Discovery</div>
-        <h2>Cleaner Story Candidates</h2>
-        <p>Album/reel candidates generated with config-driven rules, stricter matching and duplicate cleanup.</p>
+      <a class="portal-card" href="stories-raw.apple.apple_icloud.html">
+        <div class="eyebrow" data-i18n="portal.card.stories.eyebrow">Raw Story Discovery</div>
+        <h2 data-i18n="raw.hero_title">Cleaner Story Candidates</h2>
+        <p data-i18n="raw.hero_subtitle">Album/reel candidates generated with config-driven rules, stricter matching and duplicate cleanup.</p>
       </a>
 '''
 
-    if "stories-raw.tr.apple.apple_icloud.html" in text:
+    if "stories-raw.apple.apple_icloud.html" in text:
         return
 
     needle = '''    </section>
@@ -844,12 +815,10 @@ def main():
     print(f"phash_enabled: {Image is not None and imagehash is not None}")
     print(f"Discovered {len(stories)} story candidates")
 
-    langs = ["tr", "en"] if args.lang == "both" else [args.lang]
-    for lang in langs:
-        html_text = render_page(stories, lang, args.config)
-        out_file = outdir / f"stories-raw.{lang}.apple.apple_icloud.html"
-        out_file.write_text(html_text, encoding="utf-8")
-        print(f"Wrote {out_file}")
+    html_text = render_page(stories, args.config)
+    out_file = outdir / "stories-raw.apple.apple_icloud.html"
+    out_file.write_text(html_text, encoding="utf-8")
+    print(f"Wrote {out_file}")
 
     write_index_links()
 

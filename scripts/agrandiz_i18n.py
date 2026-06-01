@@ -94,6 +94,10 @@ function agrandizApplyI18n() {{
   document.querySelectorAll("[data-lang-select]").forEach(el => {{
     el.value = lang;
   }});
+
+  document.querySelectorAll("[data-lang]").forEach(el => {{
+    el.style.display = el.dataset.lang === lang ? "" : "none";
+  }});
 }}
 
 function agrandizLanguageSelector() {{

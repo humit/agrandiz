@@ -10,6 +10,9 @@ from collections import Counter
 from datetime import datetime
 from urllib.parse import quote
 
+from agrandiz_i18n import i18n_js, language_switcher_html
+from agrandiz_shell import app_nav_html
+
 
 TRANSLATIONS = {
     "tr": {
@@ -18,7 +21,7 @@ TRANSLATIONS = {
         "hero_subtitle": "Mac + Photos/iCloud arşivinizden keşfedilen ilk özet ve albüm adayları.",
         "memories_found": "anı bulundu",
         "available_local": "Bu Mac üzerinde erişilebilir",
-        "icloud_only": "Yalnızca iCloud’da",
+        "icloud_only": "Yalnızca iCloud'da",
         "whatsapp_memories": "WhatsApp anısı",
         "child_moments": "Çocuk anı etiketi",
         "favorites": "Favori",
@@ -28,8 +31,8 @@ TRANSLATIONS = {
         "top_labels": "Öne çıkan etiketler",
         "suggested_stories": "Önerilen Hikâyeler",
         "top_scored": "Apple analizine göre öne çıkan kareler",
-        "top_local": "Bu Mac’te hazır güçlü kareler",
-        "cloud_only_highlights": "iCloud’da duran güçlü kareler",
+        "top_local": "Bu Mac'te hazır güçlü kareler",
+        "cloud_only_highlights": "iCloud'da duran güçlü kareler",
         "story_whatsapp_title": "WhatsApp Anıları",
         "story_whatsapp_desc": "Dağınık mesaj geçmişinin içinden sürpriz albüm adayları.",
         "story_child_title": "Çocukluk Anları",
@@ -39,11 +42,11 @@ TRANSLATIONS = {
         "story_nature_title": "Ağaçlar ve Açık Hava",
         "story_nature_desc": "Doğa, yürüyüş ve kamp hikâyeleri için adaylar.",
         "story_beautiful_title": "Beklenmedik Güzel Kareler",
-        "story_beautiful_desc": "Apple’ın estetik olarak yüksek puanladığı unutulmuş fotoğraflar.",
+        "story_beautiful_desc": "Apple'ın estetik olarak yüksek puanladığı unutulmuş fotoğraflar.",
         "story_people_title": "İnsanlar ve Yakın Çevre",
         "story_people_desc": "İnsan içeren anılar daha sonra kişi bazlı albümlere dönüşebilir.",
         "ready_now": "Orijinal hazır",
-        "needs_download": "Orijinal iCloud’da",
+        "needs_download": "Orijinal iCloud'da",
         "score": "Skor",
         "album": "Albüm",
         "caption": "AI açıklaması",
@@ -431,6 +434,8 @@ def render_dashboard(theme, lang, profile, data):
   <div class="shell">
     <header class="hero">
       <div class="brand">agrandiz <span>{esc(t['brand_tag'])}</span></div>
+      {language_switcher_html()}
+      {app_nav_html(active="dashboard", theme=theme, profile=profile)}
       <div class="hero-copy">
         <h1>{esc(t['hero_title'])}</h1>
         <p>{esc(t['hero_subtitle'])}</p>
@@ -532,6 +537,7 @@ def render_dashboard(theme, lang, profile, data):
   </div>
 </section>
 
+{i18n_js()}
 </body>
 </html>
 """

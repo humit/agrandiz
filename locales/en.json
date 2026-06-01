@@ -85,5 +85,20 @@
   "nav.dashboard": "Dashboard",
   "nav.stories": "Stories",
   "nav.family_timeline": "Family Timeline",
-  "stories.brand_section": "story discovery"
+  "stories.brand_section": "story discovery",
+  "raw.page_title": "agrandiz raw story discovery",
+  "raw.hero_title": "Cleaner album and Reels/Shorts candidates",
+  "raw.hero_subtitle": "Second discovery output generated with config-driven story rules, exact token matching, near-duplicate cleanup and cross-story diversity.",
+  "raw.note": "This page was generated from the preview cache without downloading originals.",
+  "raw.back": "Back to demo portal",
+  "raw.candidates": "story candidates",
+  "raw.previews": "selected previews",
+  "raw.downloaded": "originals downloaded",
+  "moments.page_title": "agrandiz moment grouping",
+  "moments.hero_title": "Moment-based album and Reels/Shorts candidates",
+  "moments.hero_subtitle": "Near-burst and visually similar shots are grouped into moments; only the best representative is shown.",
+  "moments.back": "Back to demo portal",
+  "moments.candidates": "story candidates",
+  "moments.selected": "selected moments",
+  "moments.variants": "grouped variants"
 }
