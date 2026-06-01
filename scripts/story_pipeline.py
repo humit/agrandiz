@@ -11,7 +11,6 @@ discovery, grouping and rendering into generic modules.
 from __future__ import annotations
 
 import argparse
-import subprocess
 import sys
 from pathlib import Path
 from typing import Any
@@ -19,6 +18,7 @@ from typing import Any
 from agrandiz_version import print_version
 from story_profile import load_story_profile
 from story_common import source_identity
+from build_family_timeline import run_family_timeline
 
 
 SUPPORTED_BUILDER_IDS = {
@@ -67,32 +67,6 @@ def builder_for_profile(profile: dict[str, Any]) -> str:
 
 def run_builder(args: argparse.Namespace, profile: dict[str, Any]) -> int:
     builder_script = builder_for_profile(profile)
-    builder_path = script_dir() / builder_script
-
-    if not builder_path.exists():
-        raise SystemExit(f"Builder script not found: {builder_path}")
-
-    cmd = [
-        sys.executable,
-        str(builder_path),
-        "--db",
-        args.db,
-        "--config",
-        args.profile,
-        "--outdir",
-        args.outdir,
-        "--lang",
-        args.lang,
-    ]
-
-    if args.fast:
-        cmd.append("--fast")
-    if args.no_phash:
-        cmd.append("--no-phash")
-    if args.max_candidates is not None:
-        cmd += ["--max-candidates", str(args.max_candidates)]
-    if args.max_total_moments is not None:
-        cmd += ["--max-total-moments", str(args.max_total_moments)]
 
     print("Story pipeline profile:", args.profile)
     print("Story pipeline id:", profile.get("id"))
@@ -103,11 +77,34 @@ def run_builder(args: argparse.Namespace, profile: dict[str, Any]) -> int:
     print("Story pipeline output dir:", args.outdir)
 
     if args.dry_run:
-        print("Dry run command:")
-        print(" ".join(cmd))
+        print("Dry run direct call:")
+        print(
+            "run_family_timeline("
+            f"db={args.db!r}, "
+            f"config_path={args.profile!r}, "
+            f"outdir={args.outdir!r}, "
+            f"lang={args.lang!r}, "
+            f"fast={args.fast!r}, "
+            f"max_candidates={args.max_candidates!r}, "
+            f"max_total_moments={args.max_total_moments!r}, "
+            f"no_phash={args.no_phash!r})"
+        )
         return 0
 
-    return subprocess.call(cmd)
+    if builder_script != "build_family_timeline.py":
+        raise SystemExit(f"Unsupported direct builder: {builder_script}")
+
+    run_family_timeline(
+        db=args.db,
+        config_path=args.profile,
+        outdir=args.outdir,
+        lang=args.lang,
+        fast=args.fast,
+        max_candidates=args.max_candidates,
+        max_total_moments=args.max_total_moments,
+        no_phash=args.no_phash,
+    )
+    return 0
 
 
 def main() -> int:

@@ -56,42 +56,41 @@ def build_timeline(rows, config, thumbs_dir):
     }
 
 
-def main():
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--db", default="cache/agrandiz.sqlite")
-    parser.add_argument("--config", default="config/family_timeline.json")
-    parser.add_argument("--outdir", default="cache")
-    parser.add_argument("--lang", default="both", choices=["tr", "en", "both"])
-    parser.add_argument("--fast", action="store_true", help="Use faster beta/test settings")
-    parser.add_argument("--max-candidates", type=int, default=None, help="Limit matched candidate photos")
-    parser.add_argument("--max-total-moments", type=int, default=None, help="Limit selected timeline moments")
-    parser.add_argument("--no-phash", action="store_true", help="Disable perceptual hash computation")
-    args = parser.parse_args()
-
-    outdir = Path(args.outdir)
+def run_family_timeline(
+    *,
+    db="cache/agrandiz.sqlite",
+    config_path="config/family_timeline.json",
+    outdir="cache",
+    lang="both",
+    fast=False,
+    max_candidates=None,
+    max_total_moments=None,
+    no_phash=False,
+):
+    outdir = Path(outdir)
     thumbs_dir = outdir / "thumbs"
     outdir.mkdir(parents=True, exist_ok=True)
     thumbs_dir.mkdir(parents=True, exist_ok=True)
 
-    profile = load_story_profile(args.config)
+    profile = load_story_profile(config_path)
     config = legacy_selection_config(profile)
 
-    if args.fast:
+    if fast:
         config["disable_phash"] = True
         config["max_candidates"] = min(int(config.get("max_candidates", 700)), 700)
         config["max_total_moments"] = min(int(config.get("max_total_moments", 60)), 60)
         config["max_moments_per_year"] = min(int(config.get("max_moments_per_year", 8)), 8)
 
-    if args.no_phash:
+    if no_phash:
         config["disable_phash"] = True
 
-    if args.max_candidates is not None:
-        config["max_candidates"] = args.max_candidates
+    if max_candidates is not None:
+        config["max_candidates"] = max_candidates
 
-    if args.max_total_moments is not None:
-        config["max_total_moments"] = args.max_total_moments
+    if max_total_moments is not None:
+        config["max_total_moments"] = max_total_moments
 
-    conn = sqlite3.connect(args.db)
+    conn = sqlite3.connect(db)
     conn.row_factory = sqlite3.Row
     rows = fetch_story_rows(conn)
     conn.close()
@@ -103,7 +102,7 @@ def main():
         json.dumps(
             {
                 "generated_at": datetime.now().isoformat(timespec="seconds"),
-                "config": args.config,
+                "config": config_path,
                 "profile": profile,
                 "timeline": timeline
             },
@@ -120,11 +119,42 @@ def main():
     print("grouped_variant_count:", timeline["grouped_variant_count"])
 
     # Single canonical HTML file. Language switching is handled in-page via i18n.
-    default_lang = "tr" if args.lang == "both" else args.lang
+    default_lang = "tr" if lang == "both" else lang
     html_text = render_story_dashboard(timeline, config, default_lang, profile=profile)
     html_path = outdir / profile_output_html(profile)
     html_path.write_text(html_text, encoding="utf-8")
     print(f"Wrote {html_path}")
+
+    return {
+        "profile": profile,
+        "timeline": timeline,
+        "json_path": str(json_path),
+        "html_path": str(html_path),
+    }
+
+
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--db", default="cache/agrandiz.sqlite")
+    parser.add_argument("--config", default="config/family_timeline.json")
+    parser.add_argument("--outdir", default="cache")
+    parser.add_argument("--lang", default="both", choices=["tr", "en", "both"])
+    parser.add_argument("--fast", action="store_true", help="Use faster beta/test settings")
+    parser.add_argument("--max-candidates", type=int, default=None, help="Limit matched candidate photos")
+    parser.add_argument("--max-total-moments", type=int, default=None, help="Limit selected timeline moments")
+    parser.add_argument("--no-phash", action="store_true", help="Disable perceptual hash computation")
+    args = parser.parse_args()
+
+    run_family_timeline(
+        db=args.db,
+        config_path=args.config,
+        outdir=args.outdir,
+        lang=args.lang,
+        fast=args.fast,
+        max_candidates=args.max_candidates,
+        max_total_moments=args.max_total_moments,
+        no_phash=args.no_phash,
+    )
 
 
 if __name__ == "__main__":
