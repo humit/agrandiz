@@ -364,4 +364,4 @@ Agrandiz is built around a simple observation:
 
 Most people have thousands of meaningful photos, but very few of those memories are ever revisited.
 
-Agrandiz tries to make those memories visible again — safely, locally, and in a form that can become a gallery, a printed album, a family archive, or a short story worth sharing.
+Agrandiz tries to make those memories visible again — safely, locally, and in a form that can become a gallery, a printed album, a personal memory archive, or a short story worth sharing.

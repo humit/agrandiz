@@ -532,7 +532,7 @@ def render_dashboard(theme, lang, profile, data):
     <a class="portal-card" href="family-timeline.apple.apple_icloud.html">
       <div class="eyebrow">Family Timeline</div>
       <h3>Open Family Timeline</h3>
-      <p>Browse the year-by-year growing-up timeline.</p>
+      <p>Browse the year-by-year memory timeline.</p>
     </a>
   </div>
 </section>
