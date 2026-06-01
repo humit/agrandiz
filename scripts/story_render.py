@@ -104,26 +104,26 @@ def render_html(timeline, config, lang, profile=None):
     i18n = profile.get("i18n") or {}
     legacy_titles = profile.get("legacy_titles") or {}
 
-    title_key = i18n.get("title", "family.page_title")
-    subtitle_key = i18n.get("subtitle", "family.subtitle")
-    eyebrow_key = i18n.get("eyebrow", "family.timeline")
+    title_key = i18n.get("title", "story.timeline_title")
+    subtitle_key = i18n.get("subtitle", "story.timeline_subtitle")
+    eyebrow_key = i18n.get("eyebrow", "story.timeline_eyebrow")
 
     if lang == "tr":
-        title = legacy_titles.get("title_tr") or config.get("title_tr") or "Çocukların Büyüme Hikâyesi"
+        title = legacy_titles.get("title_tr") or config.get("title_tr") or "Hikâye Zaman Çizelgesi"
         subtitle = legacy_titles.get("subtitle_tr") or config.get("subtitle_tr") or ""
     else:
-        title = legacy_titles.get("title_en") or config.get("title_en") or "Children's Growing-Up Story"
+        title = legacy_titles.get("title_en") or config.get("title_en") or "Story Timeline"
         subtitle = legacy_titles.get("subtitle_en") or config.get("subtitle_en") or ""
 
     if lang == "tr":
-        story_label = "aile zaman çizelgesi"
+        story_label = "hikâye zaman çizelgesi"
         source_label = "aday fotoğraf"
         moment_label = "seçili moment"
         grouped_label = "gruplanan varyant"
         years_label = "yıl"
         note = "Bu sayfa orijinalleri indirmeden, mevcut preview cache üzerinden oluşturuldu."
     else:
-        story_label = "family timeline"
+        story_label = "story timeline"
         source_label = "candidate photos"
         moment_label = "selected moments"
         grouped_label = "grouped variants"
