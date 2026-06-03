@@ -712,6 +712,19 @@ def render_page(stories, config_path):
     @media (max-width: 620px) {{
       .story-photo-grid {{ grid-template-columns: 1fr; }}
     }}
+    .diagnostic-banner {{
+      background: rgba(214, 125, 0, 0.10);
+      border: 1px solid rgba(214, 125, 0, 0.30);
+      border-radius: 18px;
+      padding: 14px 18px;
+      margin: 0 0 24px;
+      font-size: 14px;
+      line-height: 1.5;
+      color: #7a4200;
+    }}
+    .diagnostic-banner a {{
+      color: #0071e3;
+    }}
 {APP_NAV_CSS}
   </style>
 </head>
@@ -727,6 +740,25 @@ def render_page(stories, config_path):
         <div class="meta-line"><span data-i18n="raw.note">This page was generated from the preview cache without downloading originals.</span> · Config: <strong>{esc(config_path)}</strong></div>
       </div>
     </header>
+
+    <section class="diagnostic-banner">
+      <strong>
+        <span data-lang="tr">Geliştirici görünümü</span>
+        <span data-lang="en">Developer view</span>
+      </strong>
+      —
+      <span data-lang="tr">
+        Bu sayfa, gruplama ve kürasyon öncesindeki ham keşif çıktısını gösterir.
+        Öğeler henüz momentlere gruplandırılmamıştır; exclude desteği yoktur.
+        Kürasyon için <a href="stories.apple.apple_icloud.html">Hikâyeler</a> sayfasını kullanın.
+      </span>
+      <span data-lang="en">
+        This page shows the raw discovery output before grouping and curation.
+        Items are not yet grouped into moments; exclude is not supported here.
+        For curated story candidates with full exclude flow, use the
+        <a href="stories.apple.apple_icloud.html">Stories</a> page.
+      </span>
+    </section>
 
     <section class="story-summary">
       <article class="summary-card">

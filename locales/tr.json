@@ -104,5 +104,12 @@
   "moments.back": "Demo portalına dön",
   "moments.candidates": "hikâye adayı",
   "moments.selected": "seçili moment",
-  "moments.variants": "gruplanan varyant"
+  "moments.variants": "gruplanan varyant",
+  "stories.grouped_variants": "gruplanan varyant",
+  "stories.preparation_score": "Hazırlık skoru",
+  "stories.moments": "moment",
+  "stories.source_items": "kaynak kare",
+  "stories.excluded_moments": "exclude edilen moment",
+  "stories.output_candidates": "Çıktı adayları",
+  "stories.reel_idea": "Reel/Shorts fikri"
 }

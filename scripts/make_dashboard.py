@@ -3,7 +3,6 @@
 import argparse
 import sqlite3
 import json
-import html
 import shutil
 from pathlib import Path
 from collections import Counter
@@ -12,6 +11,14 @@ from urllib.parse import quote
 
 from agrandiz_i18n import i18n_js, language_switcher_html
 from agrandiz_shell import app_nav_html
+from agrandiz_curation_ui import (
+    esc,
+    normalize_excludes, item_is_excluded,
+    render_curation_card,
+    CURATION_CARD_CSS,
+    curation_js,
+    curation_panel_html,
+)
 
 
 TRANSLATIONS = {
@@ -55,6 +62,18 @@ TRANSLATIONS = {
         "theme": "Tema",
         "platform": "Kaynak profili",
         "apple_note": "Bu ilk sürüm Apple Photos/iCloud arşivine göre tasarlanmıştır. Görseller güvenli lokal preview kopyalarından gösterilir.",
+        "curation_title": "Kürasyon araçları",
+        "curation_desc": "Exclude butonuna bastığında kart hemen gizlenir ve aşağıdaki JSON güncellenir. Kalıcı yapmak için JSON'u config/excludes.json dosyasına yapıştırıp sayfayı yeniden üret.",
+        "copy_exclude": "Exclude JSON'u kopyala",
+        "clear_excludes": "Bu tarayıcıdaki geçici exclude listesini temizle",
+        "generated_content": "Üretilen içerik",
+        "generated_content_desc": "Bu dashboard’dan üretilen hikâye çıktılarını açın.",
+        "story_gallery_eyebrow": "Hikâye Galerisi",
+        "story_gallery_title": "Hikâye Galerisini Aç",
+        "story_gallery_desc": "Kürasyonlu hikâye adaylarını, gruplanmış momentleri ve exclude listesini gözden geçirin.",
+        "family_timeline_eyebrow": "Aile Zaman Çizelgesi",
+        "family_timeline_title": "Aile Zaman Çizelgesini Aç",
+        "family_timeline_desc": "Yıllara göre bellek zaman çizelgesini inceleyin.",
     },
     "en": {
         "brand_tag": "Make your photo archive visible",
@@ -96,6 +115,18 @@ TRANSLATIONS = {
         "theme": "Theme",
         "platform": "Source profile",
         "apple_note": "This first version is designed around Apple Photos/iCloud archives. Images are rendered from safe local preview copies.",
+        "curation_title": "Curation tools",
+        "curation_desc": "When you click Exclude, the card is hidden immediately and the JSON below is updated. To make it persistent, paste the JSON into config/excludes.json and regenerate.",
+        "copy_exclude": "Copy exclude JSON",
+        "clear_excludes": "Clear temporary exclude list in this browser",
+        "generated_content": "Generated content",
+        "generated_content_desc": "Open the generated story outputs from this dashboard.",
+        "story_gallery_eyebrow": "Story Gallery",
+        "story_gallery_title": "Open Story Gallery",
+        "story_gallery_desc": "Review curated story candidates, grouped moments, and exclusions.",
+        "family_timeline_eyebrow": "Family Timeline",
+        "family_timeline_title": "Open Family Timeline",
+        "family_timeline_desc": "Browse the year-by-year memory timeline.",
     },
 }
 
@@ -104,12 +135,19 @@ def q1(conn, sql):
     return conn.execute(sql).fetchone()[0]
 
 
-def esc(value):
-    return html.escape(str(value)) if value is not None else ""
-
-
 def num(n):
     return f"{n:,}".replace(",", ".")
+
+
+def lang_spans(tr_text, en_text):
+    return (
+        f'<span data-lang="tr">{esc(tr_text)}</span>'
+        f'<span data-lang="en">{esc(en_text)}</span>'
+    )
+
+
+def dashboard_label(key):
+    return lang_spans(TRANSLATIONS["tr"].get(key, key), TRANSLATIONS["en"].get(key, key))
 
 
 def load_json(raw, default=None):
@@ -343,53 +381,50 @@ def write_dashboard_data(outdir, data):
     print(f"Wrote {out_file}")
 
 
-def render_photo_card(photo, t):
-    chips = "".join(f'<span class="chip">{esc(label)}</span>' for label in photo["labels"])
-
-    availability = t["needs_download"] if photo["is_missing"] else t["ready_now"]
-    availability_class = "icloud" if photo["is_missing"] else "local"
-
-    caption = esc(photo["caption"] or t["no_caption"])
-    album = esc(photo["album"] or "-")
-    filename = esc(photo["filename"] or "")
-    date = esc(photo["date"] or "")
-    score = f"{photo['score']:.3f}" if photo["score"] is not None else "-"
-
-    if photo.get("thumb"):
-        image_html = f'<img src="{esc(photo["thumb"])}" alt="{caption}" loading="lazy">'
-    else:
-        image_html = '<div class="thumb-placeholder"></div>'
-
-    badges = []
+def _dashboard_card(photo, lang):
+    """Convert a dashboard photo dict to a shared curation card."""
+    extra_badges = []
     if photo.get("favorite"):
-        badges.append("★")
+        extra_badges.append("★")
     if photo.get("live_photo"):
-        badges.append("Live")
+        extra_badges.append("Live")
     if photo.get("screenshot"):
-        badges.append("Screenshot")
+        extra_badges.append("Screenshot")
 
-    badges_html = "".join(f'<span class="chip">{esc(badge)}</span>' for badge in badges)
+    item = {
+        "uuid": photo.get("uuid"),
+        "phash": None,
+        "filename": photo.get("filename"),
+        "caption": photo.get("caption"),
+        "thumb": photo.get("thumb"),
+        "date": photo.get("date"),
+        "album": photo.get("album"),
+        "score": photo.get("score"),
+        "labels": photo.get("labels", []),
+        "matched_terms": [],
+        "original_status": "icloud" if photo.get("is_missing") else "local",
+    }
 
-    return f"""
-    <article class="photo-card">
-      <div class="thumb-wrap">{image_html}</div>
-      <div class="photo-meta">
-        <div class="row top">
-          <span class="availability {availability_class}">{availability}</span>
-          <span class="score">{t['score']}: {score}</span>
-        </div>
-        <div class="filename">{filename}</div>
-        <div class="caption">{caption}</div>
-        <div class="submeta">{t['album']}: {album} · {date}</div>
-        <div class="chips">{badges_html}{chips}</div>
-      </div>
-    </article>
-    """
+    moment = {
+        "representative": item,
+        "variants": [],
+        "variant_count": 1,
+    }
+
+    return render_curation_card(moment, lang, extra_badges=extra_badges or None)
 
 
-def render_dashboard(theme, lang, profile, data):
+def render_dashboard(theme, lang, profile, data, excludes=None):
     t = TRANSLATIONS[lang]
     m = data["metrics"]
+
+    excludes_norm = normalize_excludes(excludes or {})
+
+    def _excl(photo):
+        return item_is_excluded({
+            "uuid": photo.get("uuid"), "phash": None,
+            "filename": photo.get("filename"), "caption": photo.get("caption"),
+        }, excludes_norm)
 
     labels_html = "".join(
         f'<span class="label-pill">{esc(item["label"])} <strong>{item["count"]}</strong></span>'
@@ -397,30 +432,36 @@ def render_dashboard(theme, lang, profile, data):
     )
 
     story_defs = [
-        ("whatsapp_highlights", t["story_whatsapp_title"], t["story_whatsapp_desc"]),
-        ("childhood_moments", t["story_child_title"], t["story_child_desc"]),
-        ("tables_and_gatherings", t["story_food_title"], t["story_food_desc"]),
-        ("trees_and_outdoor_days", t["story_nature_title"], t["story_nature_desc"]),
-        ("surprisingly_beautiful", t["story_beautiful_title"], t["story_beautiful_desc"]),
-        ("people_and_inner_circle", t["story_people_title"], t["story_people_desc"]),
+        ("whatsapp_highlights", "story_whatsapp_title", "story_whatsapp_desc"),
+        ("childhood_moments", "story_child_title", "story_child_desc"),
+        ("tables_and_gatherings", "story_food_title", "story_food_desc"),
+        ("trees_and_outdoor_days", "story_nature_title", "story_nature_desc"),
+        ("surprisingly_beautiful", "story_beautiful_title", "story_beautiful_desc"),
+        ("people_and_inner_circle", "story_people_title", "story_people_desc"),
     ]
 
     story_map = {story["id"]: story for story in data["suggested_stories"]}
 
     story_cards = ""
-    for story_id, title, desc in story_defs:
+    for story_id, title_key, desc_key in story_defs:
         count = story_map.get(story_id, {}).get("count", 0)
         story_cards += f"""
         <article class="story-card">
           <div class="story-count">{num(count)}</div>
-          <h3>{esc(title)}</h3>
-          <p>{esc(desc)}</p>
+          <h3>{dashboard_label(title_key)}</h3>
+          <p>{dashboard_label(desc_key)}</p>
         </article>
         """
 
-    top_scored_html = "".join(render_photo_card(p, t) for p in data["photo_sets"]["top_scored"])
-    top_local_html = "".join(render_photo_card(p, t) for p in data["photo_sets"]["top_local"])
-    top_cloud_html = "".join(render_photo_card(p, t) for p in data["photo_sets"]["top_cloud"])
+    top_scored_html = "".join(
+        _dashboard_card(p, lang) for p in data["photo_sets"]["top_scored"] if not _excl(p)
+    )
+    top_local_html = "".join(
+        _dashboard_card(p, lang) for p in data["photo_sets"]["top_local"] if not _excl(p)
+    )
+    top_cloud_html = "".join(
+        _dashboard_card(p, lang) for p in data["photo_sets"]["top_cloud"] if not _excl(p)
+    )
 
     return f"""<!doctype html>
 <html lang="{lang}">
@@ -429,20 +470,82 @@ def render_dashboard(theme, lang, profile, data):
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>agrandiz dashboard</title>
   <link rel="stylesheet" href="../themes/{theme}.css">
+  <style>
+    .mini-badge {{
+      font-size: 11px;
+      padding: 5px 8px;
+      border-radius: 999px;
+      border: 1px solid rgba(0,0,0,0.08);
+      background: #f3f4f6;
+      color: #3a3a3c;
+    }}
+    .moment-badge, .chip.matched {{
+      background: rgba(0,113,227,0.10);
+      color: #0071e3;
+    }}
+    .curation-panel {{
+      background: rgba(255,255,255,0.78);
+      border: 1px solid rgba(0,0,0,0.08);
+      border-radius: 28px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+      padding: 22px;
+      margin: 24px 0;
+    }}
+    .curation-panel h2 {{
+      margin: 0 0 8px;
+      font-size: 24px;
+      letter-spacing: -0.03em;
+    }}
+    .curation-panel p {{
+      margin: 0 0 14px;
+      color: #6e6e73;
+      line-height: 1.5;
+    }}
+    .curation-actions {{
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 12px;
+    }}
+    .curation-actions button, .exclude-button {{
+      border: 1px solid rgba(0,0,0,0.08);
+      border-radius: 999px;
+      padding: 8px 12px;
+      background: #fff;
+      color: #0071e3;
+      font-weight: 650;
+      cursor: pointer;
+    }}
+    .exclude-button {{
+      color: #b42318;
+    }}
+    #exclude-json {{
+      width: 100%;
+      min-height: 130px;
+      border: 1px solid rgba(0,0,0,0.08);
+      border-radius: 18px;
+      padding: 14px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 12px;
+      background: #fff;
+      color: #1d1d1f;
+    }}
+{CURATION_CARD_CSS}
+  </style>
 </head>
 <body class="theme-{theme} profile-{profile}">
   <div class="shell">
     <header class="hero">
-      <div class="brand">agrandiz <span>{esc(t['brand_tag'])}</span></div>
+      <div class="brand">agrandiz <span>{dashboard_label('brand_tag')}</span></div>
       {language_switcher_html()}
       {app_nav_html(active="dashboard", theme=theme, profile=profile)}
       <div class="hero-copy">
-        <h1>{esc(t['hero_title'])}</h1>
-        <p>{esc(t['hero_subtitle'])}</p>
+        <h1>{dashboard_label('hero_title')}</h1>
+        <p>{dashboard_label('hero_subtitle')}</p>
         <div class="meta-line">
-          {t['theme']}: <strong>{theme}</strong> ·
-          {t['platform']}: <strong>{profile}</strong> ·
-          {t['generated']}: <strong>{esc(data["generated_at"])}</strong>
+          {dashboard_label('theme')}: <strong>{theme}</strong> ·
+          {dashboard_label('platform')}: <strong>{profile}</strong> ·
+          {dashboard_label('generated')}: <strong>{esc(data["generated_at"])}</strong>
         </div>
       </div>
     </header>
@@ -450,93 +553,96 @@ def render_dashboard(theme, lang, profile, data):
     <section class="metrics-grid">
       <article class="metric-card metric-primary">
         <div class="metric-value">{num(m['total'])}</div>
-        <div class="metric-label">{t['memories_found']}</div>
+        <div class="metric-label">{dashboard_label('memories_found')}</div>
       </article>
 
       <article class="metric-card">
         <div class="metric-value">{num(m['local'])}</div>
-        <div class="metric-label">{t['available_local']}</div>
+        <div class="metric-label">{dashboard_label('available_local')}</div>
       </article>
 
       <article class="metric-card">
         <div class="metric-value">{num(m['icloud'])}</div>
-        <div class="metric-label">{t['icloud_only']}</div>
+        <div class="metric-label">{dashboard_label('icloud_only')}</div>
       </article>
 
       <article class="metric-card">
         <div class="metric-value">{num(m['whatsapp'])}</div>
-        <div class="metric-label">{t['whatsapp_memories']}</div>
+        <div class="metric-label">{dashboard_label('whatsapp_memories')}</div>
       </article>
 
       <article class="metric-card">
         <div class="metric-value">{num(m['child'])}</div>
-        <div class="metric-label">{t['child_moments']}</div>
+        <div class="metric-label">{dashboard_label('child_moments')}</div>
       </article>
 
       <article class="metric-card">
         <div class="metric-value">{num(m['people'])}</div>
-        <div class="metric-label">{t['people_photos']}</div>
+        <div class="metric-label">{dashboard_label('people_photos')}</div>
       </article>
 
       <article class="metric-card">
         <div class="metric-value">{num(m['favorites'])}</div>
-        <div class="metric-label">{t['favorites']}</div>
+        <div class="metric-label">{dashboard_label('favorites')}</div>
       </article>
 
       <article class="metric-card">
         <div class="metric-value">{num(m['screenshots'])}</div>
-        <div class="metric-label">{t['screenshots']}</div>
+        <div class="metric-label">{dashboard_label('screenshots')}</div>
       </article>
     </section>
 
     <section class="info-strip">
       <div class="panel">
-        <h2>{esc(t['top_labels'])}</h2>
+        <h2>{dashboard_label('top_labels')}</h2>
         <div class="label-pills">{labels_html}</div>
       </div>
-      <div class="panel small-note">{esc(t['apple_note'])}</div>
+      <div class="panel small-note">{dashboard_label('apple_note')}</div>
     </section>
 
     <section>
-      <h2 class="section-title">{esc(t['suggested_stories'])}</h2>
+      <h2 class="section-title">{dashboard_label('suggested_stories')}</h2>
       <div class="stories-grid">{story_cards}</div>
     </section>
 
+    {curation_panel_html(t['curation_title'], t['curation_desc'], t['copy_exclude'], t['clear_excludes'])}
+
     <section>
-      <h2 class="section-title">{esc(t['top_scored'])}</h2>
+      <h2 class="section-title">{dashboard_label('top_scored')}</h2>
       <div class="photo-grid">{top_scored_html}</div>
     </section>
 
     <section>
-      <h2 class="section-title">{esc(t['top_local'])}</h2>
+      <h2 class="section-title">{dashboard_label('top_local')}</h2>
       <div class="photo-grid compact">{top_local_html}</div>
     </section>
 
     <section>
-      <h2 class="section-title">{esc(t['cloud_only_highlights'])}</h2>
+      <h2 class="section-title">{dashboard_label('cloud_only_highlights')}</h2>
       <div class="photo-grid compact">{top_cloud_html}</div>
     </section>
   </div>
 
 <section class="section generated-content">
   <div class="section-head">
-    <h2>Generated content</h2>
-    <p>Open the generated story outputs from this dashboard.</p>
+    <h2>{dashboard_label('generated_content')}</h2>
+    <p>{dashboard_label('generated_content_desc')}</p>
   </div>
   <div class="story-grid">
     <a class="portal-card" href="stories.apple.apple_icloud.html">
-      <div class="eyebrow">Story Gallery</div>
-      <h3>Open Story Gallery</h3>
-      <p>Review curated story candidates, grouped moments, and exclusions.</p>
+      <div class="eyebrow">{dashboard_label('story_gallery_eyebrow')}</div>
+      <h3>{dashboard_label('story_gallery_title')}</h3>
+      <p>{dashboard_label('story_gallery_desc')}</p>
     </a>
     <a class="portal-card" href="family-timeline.apple.apple_icloud.html">
-      <div class="eyebrow">Family Timeline</div>
-      <h3>Open Family Timeline</h3>
-      <p>Browse the year-by-year memory timeline.</p>
+      <div class="eyebrow">{dashboard_label('family_timeline_eyebrow')}</div>
+      <h3>{dashboard_label('family_timeline_title')}</h3>
+      <p>{dashboard_label('family_timeline_desc')}</p>
     </a>
   </div>
 </section>
 
+{curation_js(t['copy_exclude'])}
 {i18n_js()}
 </body>
 </html>

@@ -104,5 +104,12 @@
   "moments.back": "Back to demo portal",
   "moments.candidates": "story candidates",
   "moments.selected": "selected moments",
-  "moments.variants": "grouped variants"
+  "moments.variants": "grouped variants",
+  "stories.grouped_variants": "grouped variants",
+  "stories.preparation_score": "Readiness score",
+  "stories.moments": "moments",
+  "stories.source_items": "source items",
+  "stories.excluded_moments": "excluded moments",
+  "stories.output_candidates": "Output candidates",
+  "stories.reel_idea": "Reel/Shorts idea"
 }
